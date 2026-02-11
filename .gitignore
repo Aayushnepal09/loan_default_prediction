@@ -2,3 +2,9 @@
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
+
+data/raw/accepted_2007_to_2017.csv
+data/raw/datasetzip.zip
+data/processed/optimized_accepted_data.csv
+data/processed/cleaned_sample_data.csv
+.venv/
