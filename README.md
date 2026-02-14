@@ -40,9 +40,14 @@ python src/data_loading.py
 
 Run the cleaning script to prepare data for analysis. This script will:
 - Load the optimized data.
-- **Handle Missing Values**: Drops rows with crucial missing data.
+- **Handle Missing Values**: 
+    - Imputes `revol_util` with mean.
+    - Fills `emp_length` missing values and converts to numeric.
+    - Zero-fills other relevant columns.
+    - Drops rows with critical missing data.
+- **Standardization**: Converts `term` to integer (36/60).
 - **Remove Duplicates**: Ensures data integrity.
-- **Fix Data Types**: Converts date columns to proper datetime objects (optimized for speed).
+- **Fix Data Types**: Converts date columns to proper datetime objects.
 - **Create a Sample**: Generates a 10% random sample for faster development.
 - Save the cleaned sample to `data/processed/cleaned_sample_data.csv`.
 
@@ -56,6 +61,7 @@ python src/data_cleaning.py
 - `data/processed/`: Contains the optimized and cleaned data files.
 - `src/`: Source code directory.
     - `data_loading.py`: Handles data extraction and initial optimization.
-    - `data_cleaning.py`: Performs cleaning and sampling.
+    - `data_cleaning.py`: Performs advanced cleaning (imputation, standardization) and sampling.
+    - `verify_cleaning.py`: Verifies the quality and integrity of the cleaned data.
     - `eda.py`: (Placeholder) For Exploratory Data Analysis.
 - `requirements.txt`: List of Python dependencies.
