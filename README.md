@@ -1,5 +1,4 @@
-# Lending Club Analysis: A Beginner's Guide 🚀
-
+# Lending Club Analysis
 Hi there! This project is all about analyzing data from **Lending Club**, which is a place where people lend money to each other. We want to look at their loan history from 2007 to 2017 to understand patterns, like who pays back their loans and who doesn't.
 
 Think of this project like **preparing a big meal**. We have a huge pile of raw, messy ingredients (data), and we need to clean, chop, and organize them before we can cook something delicious (make charts and models).
