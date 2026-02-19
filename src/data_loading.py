@@ -41,38 +41,9 @@ if __name__ == '__main__':
              # actually the original code has a try-except block for FileNotFoundError later, but we should probably handle it here or let it fall through.
              # The existing code has `pd.read_csv` inside a try block. checking existence explicitly here is better.
         
-    # Define columns to keep and their data types for optimization
-    columns_to_keep = {
-        'loan_amnt': 'float32',
-        'term': 'str',
-        'int_rate': 'float32',
-        'installment': 'float32',
-        'grade': 'str',
-        'sub_grade': 'str',
-        'emp_length': 'str',
-        'home_ownership': 'str',
-        'annual_inc': 'float32',
-        'verification_status': 'str',
-        'issue_d': 'str',
-        'loan_status': 'str',
-        'purpose': 'str',
-        'addr_state': 'str',
-        'dti': 'float32',
-        'delinq_2yrs': 'float32',
-        'earliest_cr_line': 'str',
-        'inq_last_6mths': 'float32',
-        'open_acc': 'float32',
-        'pub_rec': 'float32',
-        'revol_bal': 'float32',
-        'revol_util': 'float32',
-        'total_acc': 'float32',
-        'last_pymnt_d': 'str',
-        'last_credit_pull_d': 'str',
-        'application_type': 'str',
-        'tot_coll_amt': 'float32',
-        'tot_cur_bal': 'float32',
-        'total_rev_hi_lim': 'float32'
-    }
+    # Date filtering parameters (change these as needed)
+    start_year = 2007  # Set to None to disable filtering
+    end_year = 2017    # Set to None to disable filtering
 
     # As the file is too large to be loaded into memory, we will process it in chunks.
     chunk_size = 100000  # Process 100,000 rows at a time
@@ -80,9 +51,15 @@ if __name__ == '__main__':
 
     try:
         # Create a text parser to read the CSV in chunks
-        for chunk in pd.read_csv(raw_data_path, usecols=columns_to_keep.keys(), dtype=columns_to_keep, chunksize=chunk_size, low_memory=False):
+        for chunk in pd.read_csv(raw_data_path, chunksize=chunk_size, low_memory=False):
+            # Apply date filtering if specified
+            if start_year is not None and end_year is not None:
+                chunk['issue_d'] = pd.to_datetime(chunk['issue_d'], format='%b-%Y', errors='coerce')
+                chunk = chunk[chunk['issue_d'].dt.year.between(start_year, end_year)]
+                print(f"Filtered chunk to years {start_year}-{end_year}, size: {len(chunk)}")
+            else:
+                print(f"Loaded chunk of size {len(chunk)}")
             chunks.append(chunk)
-            print(f"Loaded chunk of size {len(chunk)}")
 
         # Concatenate all chunks into a single DataFrame
         df_optimized = pd.concat(chunks, ignore_index=True)
