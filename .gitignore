@@ -8,3 +8,7 @@ data/processed/optimized_accepted_data.csv
 data/processed/cleaned_sample_data.csv
 .venv/
 data/raw/accepted_2007_to_2017.csv
+data/raw/Loan_status_2007-2020Q3.gzip
+data/raw/archive.zip
+data/processed/optimized_data_14_17.csv
+

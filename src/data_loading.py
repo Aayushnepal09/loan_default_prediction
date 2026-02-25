@@ -57,13 +57,17 @@ def print_year_distribution(year_counts, title="Year distribution"):
 if __name__ == '__main__':
     current_dir   = os.path.dirname(os.path.abspath(__file__))
     raw_data_dir  = os.path.join(current_dir, '..', 'data', 'raw')
+    processed_data_dir = os.path.join(current_dir, '..', 'data', 'processed')
+
+    # Dataset source (Kaggle): https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
+    # Download archive.zip and place it in data/raw/
     raw_data_path = os.path.join(raw_data_dir, 'Loan_status_2007-2020Q3.gzip')
     zip_file_path = os.path.join(raw_data_dir, 'archive.zip')
+    processed_data_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
 
     # Check if the gzip file exists; if not, try to extract it from the zip
-    if not os.path.exists(raw_data_path):
+    if not os.path.exists(processed_data_path):
         if os.path.exists(zip_file_path):
-            print(f"Data file not found. Extracting from {zip_file_path}...")
             try:
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     zip_ref.extract('Loan_status_2007-2020Q3.gzip', raw_data_dir)
@@ -76,7 +80,7 @@ if __name__ == '__main__':
                 print("Available files:", zipfile.ZipFile(zip_file_path).namelist())
                 raise
         else:
-            print(f"Error: Neither the data file nor the zip file were found at {raw_data_dir}")
+            print(f"Data file not found. Please download archive.zip from kaggle and place it in data/raw/")
 
     # ----------------------------------------------------------------
     # STEP 1: Lightweight scan — understand full dataset time coverage
@@ -136,9 +140,8 @@ if __name__ == '__main__':
         # ----------------------------------------------------------------
         # STEP 4: Save
         # ----------------------------------------------------------------
-        processed_data_dir = os.path.join(current_dir, '..', 'data', 'processed')
         os.makedirs(processed_data_dir, exist_ok=True)
-        processed_file_path = os.path.join(processed_data_dir, 'optimized_accepted_data.csv')
+        processed_file_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
         df.to_csv(processed_file_path, index=False)
         print(f"\nData saved to {processed_file_path}")
 
