@@ -1,11 +1,11 @@
 """
-preliminary_eda.py
+raw_data_inspection.py
 
 Standalone exploratory data analysis on the raw 150k-row dataset.
 Run this script BEFORE data_cleaning.py to understand the data and
 make informed cleaning decisions.
 
-Input : data/processed/optimized_accepted_data.csv
+Input : data/processed/optimized_data_14_17.csv
 Output: printed report to stdout
 
 Sections:
@@ -16,7 +16,7 @@ Sections:
   5. Target variable & class imbalance
   5b.Temporal drift  (charged-off rate bucketed by year)
   6. Data type classification
-  7. EDA summary
+  7. Summary
 """
 
 import os
@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 
-def preliminary_eda(df):
+def raw_data_inspection(df):
     """
     Comprehensive preliminary EDA before any cleaning is applied.
     Findings are accumulated and printed as a concise summary at the end.
@@ -155,8 +155,8 @@ def preliminary_eda(df):
 
     for col in key_cols:
         s = df[col]
-        if s.dtype == object:
-            s = pd.to_numeric(s.str.rstrip('%'), errors='coerce')
+        if not pd.api.types.is_numeric_dtype(s):
+            s = pd.to_numeric(s.astype(str).str.rstrip('%'), errors='coerce')
         s = s.dropna()
         if len(s) == 0:
             continue
@@ -242,7 +242,7 @@ def preliminary_eda(df):
     print(SEP)
 
     numeric_cols = df.select_dtypes(include='number').columns.tolist()
-    object_cols  = df.select_dtypes(include='object').columns.tolist()
+    object_cols  = df.select_dtypes(include=['object', 'string']).columns.tolist()
 
     # Detect columns stored as strings but containing numeric values
     # e.g. int_rate = "12.5%", emp_length = "10+ years", term = "36 months"
@@ -278,7 +278,7 @@ def preliminary_eda(df):
     findings['numeric_as_str'] = numeric_as_str
 
     # ----------------------------------------------------------------
-    # SECTION 7: EDA SUMMARY
+    # SECTION 7: SUMMARY
     # ----------------------------------------------------------------
     print(f"\n{SEP}")
     print("EDA SUMMARY")
@@ -293,7 +293,7 @@ def preliminary_eda(df):
     print(f"    Columns >30% NaN  : {findings.get('cols_over_30pct', 0)}  "
           f"-> will be dropped in data_cleaning.py")
     print(f"    Columns any NaN   : {findings.get('cols_with_any_nan', 0)}  "
-          f"-> remainder imputed in data_cleaning.py")
+          f"-> remainder imputed in feature_engineering.py")
 
     if 'pct_charged_off' in findings:
         print(f"\n  Class imbalance:")
@@ -319,7 +319,7 @@ def preliminary_eda(df):
     print(f"    Categorical : {findings.get('n_categorical', 0)}")
 
     print(f"\n{SEP}")
-    print("END OF PRELIMINARY EDA")
+    print("END OF RAW DATA INSPECTION")
     print(f"{SEP}")
     print("Review the findings above, then adjust data_cleaning.py accordingly.")
     print(SEP)
@@ -332,10 +332,10 @@ def preliminary_eda(df):
 if __name__ == '__main__':
     current_dir   = os.path.dirname(os.path.abspath(__file__))
     processed_dir = os.path.join(current_dir, '..', 'data', 'processed')
-    input_path    = os.path.join(processed_dir, 'optimized_accepted_data.csv')
+    input_path    = os.path.join(processed_dir, 'optimized_data_14_17.csv')
 
     print(f"Loading data from: {input_path}")
     df = pd.read_csv(input_path, low_memory=False)
     print(f"Loaded: {df.shape[0]:,} rows x {df.shape[1]} columns\n")
 
-    preliminary_eda(df)
+    raw_data_inspection(df)

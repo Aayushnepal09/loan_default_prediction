@@ -144,6 +144,7 @@ if __name__ == '__main__':
         processed_file_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
         df.to_csv(processed_file_path, index=False)
         print(f"\nData saved to {processed_file_path}")
+        print("\nNext: raw_data_inspection.py -> data_cleaning.py -> data_splitting.py -> eda.py")
 
     except FileNotFoundError:
         print(f"Error: The file was not found at {raw_data_path}")

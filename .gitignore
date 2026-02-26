@@ -13,8 +13,7 @@ data/raw/archive.zip
 data/processed/optimized_data_14_17.csv
 data/raw/archive/LCDataDictionary.xlsx
 data/raw/archive/Loan_status_2007-2020Q3.gzip
-data/processed/cleaned_data.csv 
-data/raw/archive/LCDataDictionary.csv
+data/processed/cleaned_data.csv
 data/processed/train.csv
 data/processed/val.csv
 data/processed/test.csv
