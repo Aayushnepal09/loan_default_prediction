@@ -1,8 +1,8 @@
 """
 data_cleaning.py
 
-Data cleaning pipeline (pre-EDA stage).
-Input : data/processed/optimized_accepted_data.csv  (150k raw rows)
+Data cleaning pipeline (pre-split stage).
+Input : data/processed/optimized_data_14_17.csv
 Output: data/processed/cleaned_data.csv
 
 Steps:
@@ -11,20 +11,18 @@ Steps:
   3. Drop post-loan leakage columns
   4. Drop uninformative columns (IDs, free-text, near-duplicates)
   5. Type conversions (term, int_rate, revol_util, emp_length)
-  6. Impute remaining missing values
-  7. Label-encode remaining categorical columns
+  6. Retained columns overview
+  7. Save output
 
-Prerequisites:
-  - Run preliminary_eda.py first to understand the data.
-  - Adjust cleaning logic below based on EDA findings before running.
+Imputation and encoding are deferred to feature_engineering.py
+(after train/val/test split) to prevent data leakage.
 
-Next step: data_splitting.py.
+Next step: data_splitting.py → EDA (train only) → feature_engineering.py.
 """
 
 import os
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 
 
 # SECTION 1: TARGET VARIABLE
@@ -89,7 +87,8 @@ def drop_leakage_cols(df):
         'last_pymnt_amnt', 'last_pymnt_d',
         'total_pymnt', 'total_pymnt_inv',
         'total_rec_prncp', 'total_rec_int', 'total_rec_late_fee',
-        'out_prncp', 'out_prncp_inv',
+        'out_prncp', 'out_prncp_inv', 
+        'hardship_flag', 
         # Post-default recovery data
         'recoveries', 'collection_recovery_fee',
         # Post-origination credit data (updated after loan is issued)
@@ -173,75 +172,6 @@ def convert_types(df):
     return df
 
 
-# ============================================================
-# SECTION 4: MISSING VALUE IMPUTATION
-# ============================================================
-
-def impute_missing_values(df, target_col='charged_off'):
-    """
-    Impute remaining missing values after column drops and feature engineering.
-      - Numeric columns   : fill with column median (robust to outliers)
-      - Categorical cols  : fill with column mode (most frequent value)
-    The target column is excluded from imputation.
-    """
-    num_cols = [
-        c for c in df.select_dtypes(include=[np.number]).columns
-        if c != target_col
-    ]
-    cat_cols = df.select_dtypes(include=['object']).columns.tolist()
-
-    num_imputed, cat_imputed = 0, 0
-
-    for col in num_cols:
-        if df[col].isnull().any():
-            df[col].fillna(df[col].median(), inplace=True)
-            num_imputed += 1
-
-    for col in cat_cols:
-        if df[col].isnull().any():
-            df[col].fillna(df[col].mode()[0], inplace=True)
-            cat_imputed += 1
-
-    print(f"  Imputed {num_imputed} numeric columns (median) "
-          f"and {cat_imputed} categorical columns (mode).")
-    return df
-
-
-# ============================================================
-# SECTION 5: CATEGORICAL ENCODING
-# ============================================================
-
-def encode_categorical(df, target_col='charged_off'):
-    """
-    Label-encode all remaining string (object) columns.
-
-    Covers nominal categoricals: grade, sub_grade, home_ownership,
-    verification_status, purpose, addr_state, application_type,
-    initial_list_status, disbursement_method, earliest_cr_line, etc.
-
-    Note: grade and sub_grade are label-encoded here with arbitrary integer
-    codes. Proper ordinal encoding (A=1...G=7) will be applied in
-    feature_engineering.py after EDA confirms the monotonic relationship
-    with charge-off rate.
-
-    issue_d is excluded because it is a date used for train/test splitting,
-    not a model feature.
-    """
-    cat_cols = [
-        c for c in df.select_dtypes(include=['object']).columns
-        if c not in (target_col, 'issue_d')
-    ]
-
-    if not cat_cols:
-        print("  No remaining categorical columns to encode.")
-        return df
-
-    le = LabelEncoder()
-    for col in cat_cols:
-        df[col] = le.fit_transform(df[col].astype(str))
-
-    print(f"  Label-encoded {len(cat_cols)} columns: {cat_cols}")
-    return df
 
 
 # ============================================================
@@ -253,7 +183,7 @@ if __name__ == '__main__':
     processed_dir = os.path.join(current_dir, '..', 'data', 'processed')
     os.makedirs(processed_dir, exist_ok=True)
 
-    input_path   = os.path.join(processed_dir, 'optimized_accepted_data.csv')
+    input_path   = os.path.join(processed_dir, 'optimized_data_14_17.csv')
     cleaned_path = os.path.join(processed_dir, 'cleaned_data.csv')
 
     # ----------------------------------------------------------
@@ -299,25 +229,13 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 7: Impute remaining missing values")
-    print("=" * 60)
-    df = impute_missing_values(df)
-    print(f"  Total nulls remaining: {df.isnull().sum().sum()}")
-
-    # ----------------------------------------------------------
-    print("\n" + "=" * 60)
-    print("STEP 8: Encode categorical variables")
-    print("=" * 60)
-    df = encode_categorical(df)
-
-    # ----------------------------------------------------------
-    print("\n" + "=" * 60)
-    print("STEP 9: Retained columns overview")
+    print("STEP 7: Retained columns overview")
     print("=" * 60)
     col_info = df.dtypes.reset_index()
     col_info.columns = ['column', 'dtype']
     col_info['null_pct'] = (df.isnull().mean() * 100).values
-    print(f"  Total columns retained: {df.shape[1]}\n")
+    print(f"  Total columns retained: {df.shape[1]}")
+    print(f"  Total nulls remaining : {df.isnull().sum().sum()}\n")
     print(f"  {'#':<4} {'Column':<35} {'Dtype':<12} {'Null%'}")
     print(f"  {'-'*4} {'-'*35} {'-'*12} {'-'*6}")
     for i, row in col_info.iterrows():
@@ -325,14 +243,14 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 10: Save output")
+    print("STEP 8: Save output")
     print("=" * 60)
     df.to_csv(cleaned_path, index=False)
     print(f"  Cleaned dataset saved  ->  {cleaned_path}")
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("PIPELINE COMPLETE")
+    print("CLEANING COMPLETE")
     print("=" * 60)
     print(f"  cleaned_data.csv : {df.shape}")
-    print("\nNext: run full EDA on cleaned_data.csv, then feature_engineering.py")
+    print("\nNext: data_splitting.py -> EDA (train only) -> feature_engineering.py")

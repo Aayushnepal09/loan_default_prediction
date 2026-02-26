@@ -11,4 +11,8 @@ data/raw/accepted_2007_to_2017.csv
 data/raw/Loan_status_2007-2020Q3.gzip
 data/raw/archive.zip
 data/processed/optimized_data_14_17.csv
+data/raw/archive/LCDataDictionary.xlsx
+data/raw/archive/Loan_status_2007-2020Q3.gzip
+data/processed/cleaned_data.csv 
+data/raw/archive/LCDataDictionary.csv
 
