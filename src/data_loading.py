@@ -33,7 +33,8 @@ def get_year_distribution(file_path, chunk_size=100_000):
     """
     year_counts = {}
     for chunk in pd.read_csv(file_path, usecols=['issue_d'],
-                              chunksize=chunk_size, low_memory=False):
+                              chunksize=chunk_size, compression=None,
+                              low_memory=False):
         chunk['issue_d'] = pd.to_datetime(chunk['issue_d'], format='%b-%Y', errors='coerce')
         for year, count in chunk['issue_d'].dt.year.value_counts().items():
             year_counts[year] = year_counts.get(year, 0) + count
@@ -56,22 +57,30 @@ def print_year_distribution(year_counts, title="Year distribution"):
 if __name__ == '__main__':
     current_dir   = os.path.dirname(os.path.abspath(__file__))
     raw_data_dir  = os.path.join(current_dir, '..', 'data', 'raw')
-    raw_data_path = os.path.join(raw_data_dir, 'accepted_2007_to_2017.csv')
-    zip_file_path = os.path.join(raw_data_dir, 'datasetzip.zip')
+    processed_data_dir = os.path.join(current_dir, '..', 'data', 'processed')
 
-    # Check if the CSV file exists; if not, try to unzip it
-    if not os.path.exists(raw_data_path):
+    # Dataset source (Kaggle): https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
+    # Download archive.zip and place it in data/raw/
+    raw_data_path = os.path.join(raw_data_dir, 'Loan_status_2007-2020Q3.gzip')
+    zip_file_path = os.path.join(raw_data_dir, 'archive.zip')
+    processed_data_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
+
+    # Check if the gzip file exists; if not, try to extract it from the zip
+    if not os.path.exists(processed_data_path):
         if os.path.exists(zip_file_path):
-            print(f"CSV file not found. Extracting from {zip_file_path}...")
             try:
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-                    zip_ref.extractall(raw_data_dir)
+                    zip_ref.extract('Loan_status_2007-2020Q3.gzip', raw_data_dir)
                 print("Extraction complete.")
             except zipfile.BadZipFile:
                 print("Error: The zip file is corrupted.")
                 raise
+            except KeyError:
+                print("Error: 'Loan_status_2007-2020Q3.gzip' not found inside the zip archive.")
+                print("Available files:", zipfile.ZipFile(zip_file_path).namelist())
+                raise
         else:
-            print(f"Error: Neither the CSV file nor the zip file were found at {raw_data_dir}")
+            print(f"Data file not found. Please download archive.zip from kaggle and place it in data/raw/")
 
     # ----------------------------------------------------------------
     # STEP 1: Lightweight scan — understand full dataset time coverage
@@ -86,16 +95,18 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------
     # STEP 2: Configure sampling based on distribution above
     # ----------------------------------------------------------------
-    # 2017 data is excluded because most loans hadn't matured yet,
-    # resulting in an artificially low charge-off rate (immature labels).
-    # We use the following time-based split strategy:
-    #   - Train      : 2014-2015  (first 80% by row order used for training)
-    #   - Validation : last 20% of 2014-2015 rows (cut in data_splitting.py)
-    #   - Test       : Jan 2016 – Jun 2016
+    # 2007-2013 excluded: too sparse (~8% of data), different lending era.
+    # 2018-2020 excluded: loans not fully matured → unreliable labels.
     #
-    # So here we load 2014-01 through 2016-06 inclusive.
+    # Split strategy (Option A — time-based):
+    #   - Train      : 2014–2016, first 80% by chronological order
+    #   - Validation : 2014–2016, last 20% by chronological order
+    #   - Test       : 2017 (full year, all loans matured by 2020)
+    #
+    # The 80/20 train/val split is done in data_splitting.py.
+    # Here we load 2014-01 through 2017-12 inclusive.
     start_date  = pd.Timestamp('2014-01-01')
-    end_date    = pd.Timestamp('2016-06-30')
+    end_date    = pd.Timestamp('2017-12-31')
     sample_size = None   # e.g. 200_000; None = load all rows in range
 
     # ----------------------------------------------------------------
@@ -105,7 +116,7 @@ if __name__ == '__main__':
     chunks = []
 
     try:
-        for chunk in pd.read_csv(raw_data_path, chunksize=chunk_size, low_memory=False):
+        for chunk in pd.read_csv(raw_data_path, chunksize=chunk_size, compression=None, low_memory=False):
             chunk['issue_d'] = pd.to_datetime(chunk['issue_d'], format='%b-%Y', errors='coerce')
             chunk = chunk[(chunk['issue_d'] >= start_date) & (chunk['issue_d'] <= end_date)]
             if len(chunk):
@@ -129,9 +140,8 @@ if __name__ == '__main__':
         # ----------------------------------------------------------------
         # STEP 4: Save
         # ----------------------------------------------------------------
-        processed_data_dir = os.path.join(current_dir, '..', 'data', 'processed')
         os.makedirs(processed_data_dir, exist_ok=True)
-        processed_file_path = os.path.join(processed_data_dir, 'optimized_accepted_data.csv')
+        processed_file_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
         df.to_csv(processed_file_path, index=False)
         print(f"\nData saved to {processed_file_path}")
 
