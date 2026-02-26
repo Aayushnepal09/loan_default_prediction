@@ -7,15 +7,14 @@ Output: data/processed/train.csv
         data/processed/val.csv
         data/processed/test.csv
 
-Split strategy:
-  - Test       : Jan 2016 - Jun 2016  (loans with mature labels)
-  - Train+Val  : all rows from 2014-2015, sorted by issue_d ascending
-  - Validation : last 20% of train+val rows (most recent portion)
-  - Train      : first 80% of train+val rows
+Split strategy (time-based):
+  - Train+Val : 2014–2016, sorted by issue_d ascending
+  - Train     : first 80% of Train+Val rows (chronological order)
+  - Validation: last  20% of Train+Val rows (chronological order)
+  - Test      : 2017 (full year, all loans matured by 2020)
 
-2017 data is excluded because most loans hadn't matured yet, causing an
-artificially low charge-off rate (immature labels). Using 2016 H1 as the
-test set ensures the held-out data has had sufficient time to resolve.
+2007-2013 excluded: too sparse (~8% of data), different lending era.
+2018-2020 excluded: loans not fully matured → unreliable labels.
 
 Using chronological order for the train/val cut prevents look-ahead bias:
 the model never sees future data during training or validation tuning.
@@ -27,21 +26,21 @@ import pandas as pd
 
 def time_based_split(df, target_col='charged_off', val_fraction=0.2):
     """
-    Split a cleaned DataFrame into train, validation, and test sets
+    Split a DataFrame into train, validation, and test sets
     using the 'issue_d' column for time-based partitioning.
 
-    Strategy
-    --------
-    - Test      : Jan 2016 - Jun 2016
-    - Train+Val : year in [2014, 2015], sorted by issue_d ascending
+    Strategy (Option A)
+    -------------------
+    - Test      : 2017 (full year)
+    - Train+Val : 2014–2016, sorted by issue_d ascending
     - Val       : last `val_fraction` rows of the sorted Train+Val block
     - Train     : remaining first rows
 
     Parameters
     ----------
-    df           : cleaned DataFrame containing 'issue_d' (datetime)
+    df           : DataFrame containing 'issue_d' (datetime or string)
     target_col   : binary target column name
-    val_fraction : fraction of 2014-2015 data reserved for validation
+    val_fraction : fraction of 2014-2016 data reserved for validation
 
     Returns
     -------
@@ -50,13 +49,13 @@ def time_based_split(df, target_col='charged_off', val_fraction=0.2):
     df = df.copy()
     df['issue_d'] = pd.to_datetime(df['issue_d'], errors='coerce')
 
-    # --- Test: Jan 2016 – Jun 2016 ---
-    test_df = df[
-        (df['issue_d'].dt.year == 2016) & (df['issue_d'].dt.month <= 6)
-    ].reset_index(drop=True)
+    # --- Test: 2017 (full year) ---
+    test_df = (df[df['issue_d'].dt.year == 2017]
+               .sort_values('issue_d')
+               .reset_index(drop=True))
 
-    # --- Train+Val: 2014-2015, sorted chronologically ---
-    tv_df = (df[df['issue_d'].dt.year.isin([2014, 2015])]
+    # --- Train+Val: 2014-2016, sorted chronologically ---
+    tv_df = (df[df['issue_d'].dt.year.isin([2014, 2015, 2016])]
              .sort_values('issue_d')
              .reset_index(drop=True))
 
@@ -64,12 +63,16 @@ def time_based_split(df, target_col='charged_off', val_fraction=0.2):
     train_df = tv_df.iloc[:cutoff].reset_index(drop=True)
     val_df   = tv_df.iloc[cutoff:].reset_index(drop=True)
 
+    # Print summary
     for name, split in [('Train', train_df), ('Val', val_df), ('Test', test_df)]:
-        rate = split[target_col].mean()
-        print(f"  {name:<5}: {len(split):>7,} rows  |  "
+        if target_col in split.columns:
+            rate = split[target_col].mean()
+            rate_str = f"  |  {target_col} rate: {rate:.1%}"
+        else:
+            rate_str = ""
+        print(f"  {name:<5}: {len(split):>9,} rows  |  "
               f"date range: {split['issue_d'].min().date()} – "
-              f"{split['issue_d'].max().date()}  |  "
-              f"Charged Off rate: {rate:.1%}")
+              f"{split['issue_d'].max().date()}{rate_str}")
 
     return train_df, val_df, test_df
 
@@ -89,18 +92,26 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 1: Load cleaned data")
+    print("STEP 1: Load cleaned data (2014-2017)")
     print("=" * 60)
     df = pd.read_csv(input_path)
     print(f"  Loaded: {df.shape[0]:,} rows x {df.shape[1]} columns")
 
-    dist = df['charged_off'].value_counts(normalize=True)
-    print(f"  Class distribution -> "
-          f"Fully Paid: {dist[0]:.1%}  |  Charged Off: {dist[1]:.1%}")
+    # Show year distribution
+    df['issue_d'] = pd.to_datetime(df['issue_d'], errors='coerce')
+    year_dist = df['issue_d'].dt.year.value_counts().sort_index()
+    print(f"  Year distribution:")
+    for year, count in year_dist.items():
+        print(f"    {year}: {count:>9,} rows ({count/len(df)*100:.1f}%)")
+
+    if 'charged_off' in df.columns:
+        dist = df['charged_off'].value_counts(normalize=True)
+        print(f"  Class distribution -> "
+              f"Fully Paid: {dist[0]:.1%}  |  Charged Off: {dist[1]:.1%}")
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 2: Time-based split  (train 2014-15 | val last 20% of 2014-15 | test 2016 H1)")
+    print("STEP 2: Time-based split  (train/val: 2014-16 80/20 chrono | test: 2017)")
     print("=" * 60)
     train_df, val_df, test_df = time_based_split(df)
 
@@ -108,6 +119,7 @@ if __name__ == '__main__':
     print("\n" + "=" * 60)
     print("STEP 3: Save outputs")
     print("=" * 60)
+    os.makedirs(processed_dir, exist_ok=True)
     train_df.to_csv(train_path, index=False)
     val_df.to_csv(val_path,     index=False)
     test_df.to_csv(test_path,   index=False)
@@ -123,3 +135,4 @@ if __name__ == '__main__':
     print(f"  train.csv  : {train_df.shape}")
     print(f"  val.csv    : {val_df.shape}")
     print(f"  test.csv   : {test_df.shape}")
+    print("\nNext: EDA (train.csv only) -> feature_engineering.py")
