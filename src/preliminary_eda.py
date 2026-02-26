@@ -332,7 +332,7 @@ def preliminary_eda(df):
 if __name__ == '__main__':
     current_dir   = os.path.dirname(os.path.abspath(__file__))
     processed_dir = os.path.join(current_dir, '..', 'data', 'processed')
-    input_path    = os.path.join(processed_dir, 'optimized_accepted_data.csv')
+    input_path    = os.path.join(processed_dir, 'optimized_data_14_17.csv')
 
     print(f"Loading data from: {input_path}")
     df = pd.read_csv(input_path, low_memory=False)
