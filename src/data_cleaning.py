@@ -114,6 +114,10 @@ def drop_uninformative_cols(df):
       - Administrative flags : policy_code (constant=1), pymnt_plan (99%+ 'n')
       - Partial geography    : zip_code (3-digit prefix, covered by addr_state)
       - Future-dated field   : next_pymnt_d (not available at origination)
+      - Derived numeric      : installment (deterministic function of loan_amnt,
+                               int_rate, term — adds multicollinearity, no new info)
+      - Operational process  : disbursement_method (Cash vs DirectPay reflects
+                               LC's internal workflow, not borrower creditworthiness)
     """
     drop_list = [
         'id', 'member_id', 'url',
@@ -123,6 +127,14 @@ def drop_uninformative_cols(df):
         'pymnt_plan',
         'funded_amnt', 'funded_amnt_inv',
         'next_pymnt_d',
+        'installment',
+        'disbursement_method',
+        'application_type',       # constant ('Individual' only); zero variance
+        'Unnamed: 0',             # stray row-index saved without index=False
+        'grade',                  # 100% derivable from sub_grade (first char); redundant
+        'tax_liens',              # 96%+ zero; too sparse to contribute signal
+        'acc_now_delinq',         # 99%+ zero; near-constant
+        'num_sats',               # identical distribution to open_acc; redundant
     ]
     existing = [c for c in drop_list if c in df.columns]
     df.drop(columns=existing, inplace=True)
@@ -241,11 +253,12 @@ if __name__ == '__main__':
     for i, row in col_info.iterrows():
         print(f"  {i+1:<4} {row['column']:<35} {str(row['dtype']):<12} {row['null_pct']:.1f}%")
 
+
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
     print("STEP 8: Save output")
     print("=" * 60)
-    df.to_csv(cleaned_path, index=False)
+    df.to_csv(cleaned_path, index=False)  # index=False prevents 'Unnamed: 0' on reload
     print(f"  Cleaned dataset saved  ->  {cleaned_path}")
 
     # ----------------------------------------------------------
