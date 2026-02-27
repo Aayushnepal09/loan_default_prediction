@@ -1,14 +1,10 @@
 """
 05_data_eda.py
 
-Exploratory Data Analysis on the TRAINING set only.
-Input : data/processed/train.csv
-Output: reports/eda/eda_report.html  (self-contained HTML with embedded plots)
+EDA on the training set. Generates a self-contained HTML report
+with embedded plots at reports/eda/eda_report.html.
 
-Run this AFTER data_splitting.py and BEFORE feature_engineering.py.
-
-Usage:
-  python src/05_data_eda.py
+Run after data_splitting.py.
 """
 
 import os
@@ -21,9 +17,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ============================================================
-# CONFIG
-# ============================================================
+# paths and settings
 current_dir = os.path.dirname(os.path.abspath(__file__))
 TRAIN_PATH  = os.path.join(current_dir, '..', 'data', 'processed', 'train.csv')
 REPORT_DIR  = os.path.join(current_dir, '..', 'reports', 'eda')
@@ -34,7 +28,7 @@ plt.rcParams.update({'figure.max_open_warning': 0})
 
 
 def fig_to_base64(fig):
-    """Convert a matplotlib figure to a base64 HTML img tag."""
+    # saves a matplotlib figure as a base64 string for embedding in html
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=120, bbox_inches='tight')
     plt.close(fig)
@@ -58,9 +52,7 @@ def table_html(df, max_rows=50):
     )
 
 
-# ============================================================
-# SECTION 1: BASIC OVERVIEW
-# ============================================================
+# --- section 1: basic overview ---
 
 def section_basic_overview(df):
     parts = [heading("Section 1: Basic Overview")]
@@ -84,9 +76,7 @@ def section_basic_overview(df):
     return parts
 
 
-# ============================================================
-# SECTION 2: MISSING VALUES
-# ============================================================
+# --- section 2: missing values ---
 
 def section_missing_values(df):
     parts = [heading("Section 2: Missing Values")]
@@ -107,7 +97,6 @@ def section_missing_values(df):
         parts.append(text(f"Columns with missing values: {len(has_missing)} / {len(df.columns)}"))
         parts.append(table_html(has_missing.set_index('Column')))
 
-        # Plot top 20
         top = has_missing.head(20).sort_values('Missing %', ascending=True)
         fig, ax = plt.subplots(figsize=(10, max(5, len(top) * 0.4)))
         bars = ax.barh(top['Column'], top['Missing %'], color=plt.cm.Reds(top['Missing %'] / top['Missing %'].max()))
@@ -123,9 +112,7 @@ def section_missing_values(df):
     return parts
 
 
-# ============================================================
-# SECTION 3: TARGET VARIABLE
-# ============================================================
+# --- section 3: target variable ---
 
 def section_target_variable(df):
     parts = [heading("Section 3: Target Variable Distribution")]
@@ -146,13 +133,22 @@ def section_target_variable(df):
     imbalance = counts.get(0, 0) / counts.get(1, 1)
     parts.append(text(f"Imbalance ratio: {imbalance:.1f}:1 (Fully Paid : Charged Off)"))
 
+    fig, ax = plt.subplots(figsize=(6, 4))
+    colors = ['#2ecc71', '#e74c3c']
+    bars = ax.bar(labels, values, color=colors, edgecolor='white', width=0.5)
+    ax.set_title('Target Variable Distribution', fontsize=13)
+    ax.set_ylabel('Count')
+    for bar, val, pct in zip(bars, values, pcts):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(values)*0.01,
+                f'{int(val):,}\n({pct}%)', ha='center', va='bottom', fontsize=10)
+    fig.tight_layout()
+    parts.append(fig_to_base64(fig))
+
     print("  Section 3: Target Variable [OK]")
     return parts
 
 
-# ============================================================
-# SECTION 4: NUMERIC FEATURES - DESCRIPTIVE STATISTICS
-# ============================================================
+# --- section 4: numeric stats ---
 
 def section_numeric_stats(df):
     parts = [heading("Section 4: Numeric Features - Descriptive Statistics")]
@@ -175,9 +171,7 @@ def section_numeric_stats(df):
     return parts, num_cols
 
 
-# ============================================================
-# SECTION 5: NUMERIC DISTRIBUTIONS & OUTLIERS
-# ============================================================
+# --- section 5: distributions and outliers ---
 
 def section_numeric_distributions(df, num_cols):
     parts = [heading("Section 5: Numeric Distributions & Outliers")]
@@ -185,7 +179,7 @@ def section_numeric_distributions(df, num_cols):
     if num_cols is None or len(num_cols) == 0:
         return parts
 
-    # Outlier summary using IQR method
+    # outlier detection using IQR
     outlier_rows = []
     for col in num_cols:
         if df[col].isnull().all():
@@ -209,7 +203,6 @@ def section_numeric_distributions(df, num_cols):
         outlier_df = pd.DataFrame(outlier_rows).sort_values('Outlier %', ascending=False)
         parts.append(table_html(outlier_df.set_index('Column'), max_rows=40))
 
-        # Top outlier columns bar chart
         top_outliers = outlier_df.head(20).sort_values('Outlier %', ascending=True)
         fig, ax = plt.subplots(figsize=(10, max(5, len(top_outliers) * 0.4)))
         bars = ax.barh(top_outliers['Column'], top_outliers['Outlier %'],
@@ -222,7 +215,7 @@ def section_numeric_distributions(df, num_cols):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    # Distribution plots (histograms + boxplots)
+    # histograms and boxplots
     parts.append(heading("Distribution Plots", level=3))
     plot_cols = [c for c in num_cols if df[c].nunique() > 1]
 
@@ -247,9 +240,7 @@ def section_numeric_distributions(df, num_cols):
     return parts
 
 
-# ============================================================
-# SECTION 6: CATEGORICAL FEATURES - VALUE COUNTS
-# ============================================================
+# --- section 6: categorical features ---
 
 def section_categorical_stats(df):
     parts = [heading("Section 6: Categorical Features - Value Counts")]
@@ -291,9 +282,7 @@ def section_categorical_stats(df):
     return parts, cat_cols
 
 
-# ============================================================
-# SECTION 7: TARGET vs FEATURES (Charge-Off Rate by Category)
-# ============================================================
+# --- section 7: charge-off rate by category ---
 
 def section_target_vs_features(df, cat_cols):
     parts = [heading("Section 7: Charge-Off Rate by Category")]
@@ -329,9 +318,7 @@ def section_target_vs_features(df, cat_cols):
     return parts
 
 
-# ============================================================
-# SECTION 8: CORRELATION ANALYSIS
-# ============================================================
+# --- section 8: correlation ---
 
 def section_correlation(df):
     parts = [heading("Section 8: Correlation Analysis")]
@@ -343,7 +330,7 @@ def section_correlation(df):
 
     corr = df[num_cols].corr()
 
-    # Top correlations with target
+    # how each feature correlates with the target
     if TARGET_COL in corr.columns:
         target_corr = corr[TARGET_COL].drop(TARGET_COL)
         target_corr_abs = target_corr.abs().sort_values(ascending=False)
@@ -357,7 +344,6 @@ def section_correlation(df):
         })
         parts.append(table_html(corr_df.set_index('Feature')))
 
-        # Bar chart
         plot_data = corr_df.sort_values('Correlation', ascending=True)
         fig, ax = plt.subplots(figsize=(10, 8))
         colors = ['#e74c3c' if v > 0 else '#3498db' for v in plot_data['Correlation']]
@@ -368,7 +354,7 @@ def section_correlation(df):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    # Highly correlated pairs
+    # find pairs with really high correlation
     parts.append(heading("Highly Correlated Feature Pairs (|r| > 0.8)", level=3))
     pairs = []
     for i in range(len(corr.columns)):
@@ -386,7 +372,7 @@ def section_correlation(df):
     else:
         parts.append(text("No feature pairs with |r| > 0.8 found."))
 
-    # Heatmap
+    # heatmap of top features
     if TARGET_COL in corr.columns:
         top_features = target_corr_abs.head(15).index.tolist() + [TARGET_COL]
         sub_corr = df[top_features].corr()
@@ -402,9 +388,7 @@ def section_correlation(df):
     return parts
 
 
-# ============================================================
-# HTML REPORT BUILDER
-# ============================================================
+# --- build the html report ---
 
 def build_html_report(sections):
     css = """
@@ -431,10 +415,6 @@ def build_html_report(sections):
         .styled-table tbody tr:nth-of-type(even) { background-color: #f3f3f3; }
         .styled-table tbody tr:hover { background-color: #e8f4fd; }
         p { line-height: 1.6; }
-        .next-steps {
-            background: #eaf2f8; border-left: 4px solid #3498db;
-            padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
-        }
     </style>
     """
 
@@ -451,32 +431,13 @@ def build_html_report(sections):
         for part in section:
             html.append(part)
 
-    html.append("""
-    <h2>Next Steps</h2>
-    <div class='next-steps'>
-        <ol>
-            <li><strong>Missing values</strong> - Decide imputation strategy per column (fit on train only)</li>
-            <li><strong>Outliers</strong> - Decide capping thresholds (compute from train, apply to all)</li>
-            <li><strong>Class imbalance</strong> - Consider SMOTE or class_weight in model</li>
-            <li><strong>High correlations</strong> - Drop redundant features (|r| > 0.8)</li>
-            <li><strong>Categorical encoding</strong> - Ordinal for grade/sub_grade, one-hot or target-encode for others</li>
-            <li><strong>Feature creation</strong> - credit_history_months, FICO merge, loan_to_income, etc.</li>
-        </ol>
-        <p>Then proceed to: <code>feature_engineering.py</code></p>
-    </div>
-    """)
-
     html.extend(["</body>", "</html>"])
     return "\n".join(html)
 
 
-# ============================================================
-# MAIN
-# ============================================================
-
 if __name__ == '__main__':
     print("\n" + "#" * 60)
-    print("#  EDA - Generating HTML Report (matplotlib)")
+    print("#  EDA - Generating HTML Report")
     print("#" * 60)
 
     df = pd.read_csv(TRAIN_PATH, low_memory=False)
@@ -507,6 +468,5 @@ if __name__ == '__main__':
         f.write(html)
 
     abs_path = os.path.abspath(report_path)
-    print(f"\n  [OK] Report saved: {abs_path}")
+    print(f"\n  Report saved: {abs_path}")
     print(f"  Open in browser: file:///{abs_path.replace(os.sep, '/')}")
-    print(f"\n  Next: review report -> feature_engineering.py")

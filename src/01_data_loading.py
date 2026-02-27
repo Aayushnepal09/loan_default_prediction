@@ -4,15 +4,7 @@ import zipfile
 
 
 def load_data(file_path):
-    """
-    Loads data from a CSV file.
-
-    Args:
-        file_path (str): The path to the CSV file.
-
-    Returns:
-        pandas.DataFrame: The loaded data.
-    """
+    # loads a csv file and returns a dataframe
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
@@ -20,17 +12,7 @@ def load_data(file_path):
 
 
 def get_year_distribution(file_path, chunk_size=100_000):
-    """
-    Lightweight first pass: read only the 'issue_d' column to count
-    rows per year across the full raw dataset.
-
-    Args:
-        file_path (str): Path to the raw CSV file.
-        chunk_size (int): Rows per chunk while scanning.
-
-    Returns:
-        pd.Series: Row counts indexed by year (int), sorted ascending.
-    """
+    # reads only the issue_d column in chunks to count how many rows per year
     year_counts = {}
     for chunk in pd.read_csv(file_path, usecols=['issue_d'],
                               chunksize=chunk_size, compression=None,
@@ -42,7 +24,7 @@ def get_year_distribution(file_path, chunk_size=100_000):
 
 
 def print_year_distribution(year_counts, title="Year distribution"):
-    """Print a formatted table of row counts per year."""
+    # prints a table showing rows per year
     total = year_counts.sum()
     print(f"\n{title}:")
     print(f"  {'Year':<6} {'Rows':>10}   {'%':>6}")
@@ -59,13 +41,13 @@ if __name__ == '__main__':
     raw_data_dir  = os.path.join(current_dir, '..', 'data', 'raw')
     processed_data_dir = os.path.join(current_dir, '..', 'data', 'processed')
 
-    # Dataset source (Kaggle): https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
-    # Download archive.zip and place it in data/raw/
+    # Dataset from Kaggle: https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
+    # download archive.zip and put it in data/raw/
     raw_data_path = os.path.join(raw_data_dir, 'Loan_status_2007-2020Q3.gzip')
     zip_file_path = os.path.join(raw_data_dir, 'archive.zip')
     processed_data_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
 
-    # Check if the gzip file exists; if not, try to extract it from the zip
+    # extract from zip if we haven't already
     if not os.path.exists(processed_data_path):
         if os.path.exists(zip_file_path):
             try:
@@ -73,45 +55,24 @@ if __name__ == '__main__':
                     zip_ref.extract('Loan_status_2007-2020Q3.gzip', raw_data_dir)
                 print("Extraction complete.")
             except zipfile.BadZipFile:
-                print("Error: The zip file is corrupted.")
-                raise
-            except KeyError:
-                print("Error: 'Loan_status_2007-2020Q3.gzip' not found inside the zip archive.")
-                print("Available files:", zipfile.ZipFile(zip_file_path).namelist())
+                print("Error: zip file is corrupted.")
                 raise
         else:
             print(f"Data file not found. Please download archive.zip from kaggle and place it in data/raw/")
 
-    # ----------------------------------------------------------------
-    # STEP 1: Lightweight scan — understand full dataset time coverage
-    # ----------------------------------------------------------------
-    # This pass reads ONLY the 'issue_d' column so it is fast even for
-    # the ~450 k-row raw file.  Use the printed table to decide the
-    # start_year / end_year / sample_size parameters below.
-    print("Scanning full dataset for year distribution (lightweight pass)...")
+    # first do a quick scan to see how many rows per year
+    print("Scanning full dataset for year distribution...")
     year_counts = get_year_distribution(raw_data_path)
-    print_year_distribution(year_counts, title="Full dataset — rows per year")
+    print_year_distribution(year_counts, title="Full dataset - rows per year")
 
-    # ----------------------------------------------------------------
-    # STEP 2: Configure sampling based on distribution above
-    # ----------------------------------------------------------------
-    # 2007-2013 excluded: too sparse (~8% of data), different lending era.
-    # 2018-2020 excluded: loans not fully matured → unreliable labels.
-    #
-    # Split strategy (Option A — time-based):
-    #   - Train      : 2014–2016, first 80% by chronological order
-    #   - Validation : 2014–2016, last 20% by chronological order
-    #   - Test       : 2017 (full year, all loans matured by 2020)
-    #
-    # The 80/20 train/val split is done in data_splitting.py.
-    # Here we load 2014-01 through 2017-12 inclusive.
+    # we only want 2014-2017 because:
+    # - 2007-2013 is too sparse
+    # - 2018-2020 loans havent fully matured yet so labels arent reliable
     start_date  = pd.Timestamp('2014-01-01')
     end_date    = pd.Timestamp('2017-12-31')
-    sample_size = None   # e.g. 200_000; None = load all rows in range
+    sample_size = None   # set to like 200000 if you want a smaller sample
 
-    # ----------------------------------------------------------------
-    # STEP 3: Load the full data within the chosen date range
-    # ----------------------------------------------------------------
+    # load in chunks and filter by date
     chunk_size = 100_000
     chunks = []
 
@@ -133,18 +94,15 @@ if __name__ == '__main__':
         print(f"Date range in sample : {df['issue_d'].min().date()} to {df['issue_d'].max().date()}")
         print(f"Final shape          : {df.shape}")
 
-        # Show year distribution of the final sample so we can verify coverage
+        # check the year distribution of what we loaded
         sample_dist = df['issue_d'].dt.year.value_counts().sort_index()
-        print_year_distribution(sample_dist, title="Final sample — rows per year")
+        print_year_distribution(sample_dist, title="Final sample - rows per year")
 
-        # ----------------------------------------------------------------
-        # STEP 4: Save
-        # ----------------------------------------------------------------
+        # save it out
         os.makedirs(processed_data_dir, exist_ok=True)
         processed_file_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
         df.to_csv(processed_file_path, index=False)
         print(f"\nData saved to {processed_file_path}")
-        print("\nNext: raw_data_inspection.py -> data_cleaning.py -> data_splitting.py -> eda.py")
 
     except FileNotFoundError:
         print(f"Error: The file was not found at {raw_data_path}")
