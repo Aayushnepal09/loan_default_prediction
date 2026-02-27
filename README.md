@@ -1,97 +1,169 @@
-# Lending Club Analysis
-Hi there! This project is all about analyzing data from **Lending Club**, which is a place where people lend money to each other. We want to look at their loan history from 2007 to 2017 to understand patterns, like who pays back their loans and who doesn't.
+# Lending Club Loan Default Prediction
 
-Think of this project like **preparing a big meal**. We have a huge pile of raw, messy ingredients (data), and we need to clean, chop, and organize them before we can cook something delicious (make charts and models).
+## Overview
 
----
+This project analyzes Lending Club loan data (2014-2017) to predict whether a borrower will **charge off** (default) or **fully pay** their loan. The pipeline covers the full data science workflow: loading raw data, cleaning, splitting, exploratory data analysis (EDA), and preparation for modeling.
 
-## ⏱️ 10-Minute Quick Start Guide
+**Dataset:** [Lending Club 2007-2020Q3 (Kaggle)](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)
 
-Want to get this running on your computer right now? Follow these simple steps!
-
-1.  **Get the Code**: Download this folder to your computer.
-2.  **Install Python**: Make sure you have Python installed. (It's the tool that runs our scripts).
-3.  **Open a Terminal**: This is where you type commands. Navigate to this folder.
-4.  **Install Requirements** (The Grocery List):
-    ```bash
-    pip install -r requirements.txt
-    ```
-5.  **Step 1: The Delivery Truck (Load Data)**
-    Run this command to get the raw data and unpack it:
-    ```bash
-    python src/data_loading.py
-    ```
-    *Wait a moment while it unzips the big file and organizes it.*
-
-6.  **Step 2: The Chef (Clean Data)**
-    Run this command to wash and chop the data:
-    ```bash
-    python src/data_cleaning.py
-    ```
-    *This will fix errors, fill in missing info, and make the data nice and tidy.*
-
-7.  **Step 3: The Health Inspector (Verify Data)**
-    Run this command to check if our work is good:
-    ```bash
-    python src/verify_cleaning.py
-    ```
-    *If it says "PASSED", you are ready to analyze!*
+**Key decisions:**
+- **Date range:** 2014-2017 (2007-2013 too sparse; 2018-2020 loans not matured)
+- **Target variable:** `charged_off` (binary: 0 = Fully Paid, 1 = Charged Off)
+- **Split strategy:** Time-based (train/val: 2014-2016, test: 2017) to prevent look-ahead bias
+- **Class imbalance:** ~4:1 ratio (80% Fully Paid, 20% Charged Off)
 
 ---
 
-## 📂 File-by-File Explanation (ELI5)
+## Project Structure
 
-Here is a breakdown of every file in this project, explained simply:
-
-### 1. `src/data_loading.py` (The Delivery Truck 🚚)
-- **What it is:** This script is responsible for getting the raw data into our project.
-- **Why we need it:** The original data file is huge and sometimes zipped up. We can't just open it easily.
-- **How it works:** 
-    1. It checks if we have the raw CSV file.
-    2. If not, it finds the ZIP file (`datasetzip.zip`) and extracts it automatically.
-    3. It reads the giant file in small chunks (so your computer doesn't crash) and saves a more improved version (`optimized_accepted_data.csv`) that is easier to work with.
-
-### 2. `src/data_cleaning.py` (The Chef 👨‍🍳)
-- **What it is:** This script takes the raw data and cleans it up.
-- **Why we need it:** Real-world data is messy! It has missing values, weird text (like "36 months" instead of just the number 36), and dates stored as text.
-- **How it works:**
-    - **Fixes Missing Values:** If `revol_util` is missing, it fills it with the average. If employment length is missing, it assumes 0 years.
-    - **Standardizes Text:** It turns "36 months" into the number `36`.
-    - **Fixes Dates:** It turns text dates (like "Dec-2015") into real calendar dates Python understands.
-    - **Samples Data:** It creates a smaller, clean sample (`cleaned_sample_data.csv`) so we can test our analysis quickly without waiting for the huge file every time.
-
-### 3. `src/verify_cleaning.py` (The Health Inspector 🕵️)
-- **What it is:** This script checks the work of the Chef (`data_cleaning.py`).
-- **Why we need it:** We need to trust our data. If the cleaner made a mistake, our analysis will be wrong.
-- **How it works:** It runs a checklist:
-    - "Is `term` a number?" ✅
-    - "Are there any missing values in important columns?" ✅
-    - "Are the dates real dates?" ✅
-    - If anything fails, it yells at us so we can fix it!
-
-### 4. `src/eda.py` (The Sketchpad ✏️)
-- **What it is:** This is a placeholder file for future data exploration.
-- **Why we need it:** We will use it later to draw charts and learn from the data.
-- **How it works:** It's currently empty, waiting for your ideas!
-
-### 5. `data/` (The Pantry 🥫)
-- **What it is:** This is where we store our data files.
-- **Why we need it:** To keep things organized.
-    - `data/raw/`: The untouched, original ingredients.
-    - `data/processed/`: The chopped, cleaned, and ready-to-use ingredients.
-
-### 5. `requirements.txt` (The Grocery List 📝)
-- **What it is:** A list of Python libraries (tools) we need.
-- **Why we need it:** To make sure everyone has the same tools installed so the code runs exactly the same way on every computer.
+```
+DIC_project/
+├── data/
+│   ├── raw/                          # Raw data files (archive.zip)
+│   └── processed/                    # Pipeline outputs
+│       ├── optimized_data_14_17.csv  # Step 1 output
+│       ├── cleaned_data.csv          # Step 3 output
+│       ├── train.csv                 # Step 4 output (2014-2016, 80%)
+│       ├── val.csv                   # Step 4 output (2014-2016, 20%)
+│       └── test.csv                  # Step 4 output (2017)
+├── reports/
+│   └── eda/
+│       └── eda_report.html           # Step 5 output (self-contained HTML)
+├── src/
+│   ├── 01_data_loading.py            # Load and filter raw data
+│   ├── 02_data_inspection.py         # Raw data EDA (before cleaning)
+│   ├── 03_data_cleaning.py           # Clean and prepare data
+│   ├── 04_data_splitting.py          # Time-based train/val/test split
+│   └── 05_data_eda.py                # EDA on training set (HTML report)
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## 🛠️ How to Re-create This Project
+## Setup Instructions
 
-If you lost everything and only had the raw data `datasetzip.zip`, you could rebuild the entire analysis in **under 10 minutes** just by running the three scripts in order:
+### Prerequisites
 
-1.  `python src/data_loading.py`
-2.  `python src/data_cleaning.py`
-3.  `python src/verify_cleaning.py`
+- Python 3.10+
+- [Conda](https://docs.conda.io/en/latest/) (recommended) or pip
 
-That's it! You're now a data pro! 🎉
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Aayushnepal09/Eas587_project.git
+cd Eas587_project
+```
+
+### 2. Create a Virtual Environment
+
+**Using Conda:**
+```bash
+conda create -n DIC_Project python=3.10
+conda activate DIC_Project
+```
+
+**Using pip:**
+```bash
+python -m venv venv
+venv\Scripts\activate       # Windows
+# source venv/bin/activate  # macOS/Linux
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Download the Dataset
+
+1. Download `archive.zip` from [Kaggle](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)
+2. Place `archive.zip` in the `data/raw/` directory
+
+---
+
+## How to Run
+
+Run the scripts **in order** from the project root directory. Each step depends on the output of the previous one.
+
+### Step 1: Load Data
+
+```bash
+python src/01_data_loading.py
+```
+
+- Extracts `Loan_status_2007-2020Q3.gzip` from `archive.zip`
+- Filters to loans issued between 2014-2017
+- Saves `data/processed/optimized_data_14_17.csv` (~1.5M rows)
+
+### Step 2: Inspect Raw Data (Optional)
+
+```bash
+python src/02_data_inspection.py
+```
+
+- Prints a comprehensive report of the raw data **before** cleaning
+- Covers: data structure, missing values, duplicates, distributions, class imbalance, temporal drift, and data type classification
+- Use findings to guide cleaning decisions
+
+### Step 3: Clean Data
+
+```bash
+python src/03_data_cleaning.py
+```
+
+- Filters to completed loans (Fully Paid / Charged Off) and creates binary target
+- Drops columns with >30% missing values
+- Removes post-loan leakage columns and uninformative features
+- Converts string types (term, int_rate, revol_util, emp_length) to numeric
+- Saves `data/processed/cleaned_data.csv`
+
+### Step 4: Split Data
+
+```bash
+python src/04_data_splitting.py
+```
+
+- Time-based split to prevent look-ahead bias:
+  - **Train:** 2014-2016, first 80% chronologically
+  - **Validation:** 2014-2016, last 20% chronologically
+  - **Test:** 2017 (full year)
+- Saves `train.csv`, `val.csv`, `test.csv` to `data/processed/`
+
+### Step 5: Exploratory Data Analysis
+
+```bash
+python src/05_data_eda.py
+```
+
+- Runs EDA on the **training set only** (no data leakage)
+- Generates a self-contained HTML report at `reports/eda/eda_report.html`
+- Sections: overview, missing values, target distribution, numeric statistics, distributions & outliers, categorical features, charge-off rates by category, correlation analysis
+- Open the report in any browser to view
+
+---
+
+## Pipeline Summary
+
+```
+archive.zip
+    │
+    ▼
+01_data_loading.py ──► optimized_data_14_17.csv (1.5M rows, 142 cols)
+    │
+    ▼
+02_data_inspection.py  (optional, stdout report)
+    │
+    ▼
+03_data_cleaning.py ──► cleaned_data.csv (1.4M rows, ~61 cols)
+    │
+    ▼
+04_data_splitting.py ──► train.csv / val.csv / test.csv
+    │
+    ▼
+05_data_eda.py ──► reports/eda/eda_report.html
+    │
+    ▼
+feature_engineering.py (TODO)
+```

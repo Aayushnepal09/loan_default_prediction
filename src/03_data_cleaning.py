@@ -146,6 +146,31 @@ def drop_uninformative_cols(df):
 # SECTION 3: TYPE CONVERSIONS
 # ============================================================
 
+def fix_invalid_values(df):
+    """
+    Set physically impossible values to NaN so they can be imputed later
+    in feature_engineering.py (fit on train only).
+
+    Rules derived from domain knowledge — no target involved:
+      - dti < 0      : debt-to-income ratio cannot be negative (2 rows in raw data)
+      - annual_inc < 0: income cannot be negative
+      - open_acc < 0  : account count cannot be negative
+    """
+    fixes = 0
+    for col, condition in [('dti', df['dti'] < 0),
+                            ('annual_inc', df['annual_inc'] < 0),
+                            ('open_acc', df['open_acc'] < 0)]:
+        if col in df.columns:
+            n = condition.sum()
+            if n > 0:
+                df.loc[condition, col] = np.nan
+                print(f"  '{col}': set {n} impossible value(s) (<0) to NaN.")
+                fixes += n
+    if fixes == 0:
+        print("  No impossible values found.")
+    return df
+
+
 def convert_types(df):
     """
     Fix columns whose values are stored in an unusable string format.
@@ -241,7 +266,13 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 7: Retained columns overview")
+    print("STEP 7: Fix impossible values (domain constraints)")
+    print("=" * 60)
+    df = fix_invalid_values(df)
+
+    # ----------------------------------------------------------
+    print("\n" + "=" * 60)
+    print("STEP 8: Retained columns overview")  # was Step 7
     print("=" * 60)
     col_info = df.dtypes.reset_index()
     col_info.columns = ['column', 'dtype']
@@ -256,14 +287,14 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 8: Save output")
+    print("STEP 9: Save output")
     print("=" * 60)
     df.to_csv(cleaned_path, index=False)  # index=False prevents 'Unnamed: 0' on reload
     print(f"  Cleaned dataset saved  ->  {cleaned_path}")
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("CLEANING COMPLETE")
+    print("STEP 10: CLEANING COMPLETE")
     print("=" * 60)
     print(f"  cleaned_data.csv : {df.shape}")
     print("\nNext: data_splitting.py -> EDA (train only) -> feature_engineering.py")
