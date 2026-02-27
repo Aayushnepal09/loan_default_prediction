@@ -6,11 +6,11 @@ Input : data/processed/optimized_data_14_17.csv
 Output: data/processed/cleaned_data.csv
 
 Steps:
-  1. Filter loan_status and create binary target variable (charged_off)
+  1. Filter loan_status and create binary target variable
   2. Drop columns with >30% missing values
   3. Drop post-loan leakage columns
-  4. Drop uninformative columns (IDs, free-text, near-duplicates)
-  5. Type conversions (term, int_rate, revol_util, emp_length)
+  4. Drop uninformative columns
+  5. Type conversions
   6. Retained columns overview
   7. Save output
 
@@ -58,8 +58,6 @@ def prepare_target(df):
 def drop_high_missing_cols(df, threshold=0.3):
     """
     Drop columns where more than `threshold` fraction of values are missing.
-    The reference notebook identified ~58 such columns using a 30% threshold,
-    including joint-application fields, hardship fields, and settlement fields.
     """
     missing_rate = df.isnull().mean()
     cols_to_drop = missing_rate[missing_rate > threshold].index.tolist()
@@ -157,51 +155,66 @@ def fix_invalid_values(df):
     in feature_engineering.py (fit on train only).
 
     Rules derived from domain knowledge — no target involved:
-      - dti < 0      : debt-to-income ratio cannot be negative (2 rows in raw data)
-      - annual_inc < 0: income cannot be negative
-      - open_acc < 0  : account count cannot be negative
+      - dti < 0         : debt-to-income ratio cannot be negative (2 rows in raw data)
+      - annual_inc < 0  : income cannot be negative
+      - open_acc < 0    : account count cannot be negative
+      - revol_util > 200: revolving utilization above 200% is a data-entry error
     """
     fixes = 0
-    for col, condition in [('dti', df['dti'] < 0),
-                            ('annual_inc', df['annual_inc'] < 0),
-                            ('open_acc', df['open_acc'] < 0)]:
+    checks = [
+        ('dti',        df['dti'] < 0,          'impossible value(s) (<0)'),
+        ('annual_inc', df['annual_inc'] < 0,    'impossible value(s) (<0)'),
+        ('open_acc',   df['open_acc'] < 0,      'impossible value(s) (<0)'),
+        ('revol_util', df['revol_util'] > 200,  'impossible value(s) (>200)'),
+    ]
+    for col, condition, label in checks:
         if col in df.columns:
             n = condition.sum()
             if n > 0:
                 df.loc[condition, col] = np.nan
-                print(f"  '{col}': set {n} impossible value(s) (<0) to NaN.")
+                print(f"  '{col}': set {n} {label} to NaN.")
                 fixes += n
     if fixes == 0:
         print("  No impossible values found.")
     return df
 
 
-def convert_types(df):
+def strip_numeric_strings(df):
     """
-    Fix columns whose values are stored in an unusable string format.
-    This is pure data parsing, not feature engineering:
-      - term        : "36 months" -> 36 (integer)
-      - int_rate    : "12.5%"     -> 12.5 (float)
-      - revol_util  : "45.3%"     -> 45.3 (float)
-      - emp_length  : "5 years"   -> 5 (integer), NaN -> -1
+    Numeric string normalization.
+    Convert columns where numeric values are stored as strings with non-numeric
+      - term       : " 36 months" -> 36   (strip unit suffix, cast to int)
+      - int_rate   : "12.5%"      -> 12.5 (strip '%', cast to float)
+      - revol_util : "45.3%"      -> 45.3 (strip '%', cast to float)
 
-    Deferred to feature_engineering.py (after full EDA):
-      - FICO merge, log(annual_inc), credit_history_years, issue_year,
-        installment_to_income, loan_to_income, grade/sub_grade ordinal encoding
     """
-
-    # -- Term: "36 months" -> 36 (integer) --
+    # -- Term: " 36 months" -> 36 --
     if 'term' in df.columns and df['term'].dtype == object:
         df['term'] = df['term'].str.strip().str.split().str[0].astype(int)
-        print("  'term': converted to integer.")
+        print("  'term': stripped unit suffix, converted to integer.")
 
-    # -- int_rate and revol_util: strip '%' if stored as string --
+    # -- int_rate and revol_util: strip '%' --
     for col in ['int_rate', 'revol_util']:
         if col in df.columns and df[col].dtype == object:
             df[col] = df[col].str.rstrip('%').astype(float)
-            print(f"  '{col}': stripped '%' and converted to float.")
+            print(f"  '{col}': stripped '%', converted to float.")
 
-    # -- Employment length: text -> integer (0-10), NaN -> -1 (unknown) --
+    return df
+
+
+def parse_structured_text(df):
+    """
+    Structured text and date parsing.
+
+    Convert columns whose string values encode structured information that
+    requires either a domain-ordered lookup table or a date-format parser:
+      - emp_length       : "5 years" / "10+ years" / NaN
+                           -> ordinal integer 0-10, unknown -> -1
+      - earliest_cr_line : "Oct-1981" -> datetime
+      - issue_d          : "2014-01-01" -> datetime
+
+    """
+    # -- Employment length: ordered text -> integer (0-10), NaN -> -1 --
     if 'emp_length' in df.columns:
         emp_map = {
             '< 1 year': 0, '1 year': 1, '2 years': 2, '3 years': 3,
@@ -209,7 +222,18 @@ def convert_types(df):
             '8 years':  8, '9 years': 9, '10+ years': 10,
         }
         df['emp_length'] = df['emp_length'].map(emp_map).fillna(-1).astype(int)
-        print("  'emp_length': text -> integer (unknown -> -1).")
+        print("  'emp_length': ordinal text -> integer (unknown -> -1).")
+
+    # -- Date columns: string -> datetime --
+    if 'earliest_cr_line' in df.columns and df['earliest_cr_line'].dtype == object:
+        df['earliest_cr_line'] = pd.to_datetime(
+            df['earliest_cr_line'], format='%b-%Y', errors='coerce'
+        )
+        print("  'earliest_cr_line': parsed to datetime (format='%b-%Y').")
+
+    if 'issue_d' in df.columns and df['issue_d'].dtype == object:
+        df['issue_d'] = pd.to_datetime(df['issue_d'], errors='coerce')
+        print("  'issue_d': parsed to datetime.")
 
     return df
 
@@ -264,20 +288,26 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 6: Type conversions")
+    print("STEP 6: Numeric string normalization (strip suffixes/symbols)")
     print("=" * 60)
-    df = convert_types(df)
-    print(f"  Columns after type conversion: {df.shape[1]}")
+    df = strip_numeric_strings(df)
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 7: Fix impossible values (domain constraints)")
+    print("STEP 7: Structured text and date parsing")
+    print("=" * 60)
+    df = parse_structured_text(df)
+    print(f"  Columns after type conversions: {df.shape[1]}")
+
+    # ----------------------------------------------------------
+    print("\n" + "=" * 60)
+    print("STEP 8: Fix impossible values (domain constraints)")
     print("=" * 60)
     df = fix_invalid_values(df)
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 8: Retained columns overview")  # was Step 7
+    print("STEP 9: Retained columns overview")
     print("=" * 60)
     col_info = df.dtypes.reset_index()
     col_info.columns = ['column', 'dtype']
@@ -292,14 +322,14 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 9: Save output")
+    print("STEP 10: Save output")
     print("=" * 60)
     df.to_csv(cleaned_path, index=False)  # index=False prevents 'Unnamed: 0' on reload
     print(f"  Cleaned dataset saved  ->  {cleaned_path}")
 
     # ----------------------------------------------------------
     print("\n" + "=" * 60)
-    print("STEP 10: CLEANING COMPLETE")
+    print("CLEANING COMPLETE")
     print("=" * 60)
     print(f"  cleaned_data.csv : {df.shape}")
     print("\nNext: data_splitting.py -> EDA (train only) -> feature_engineering.py")
