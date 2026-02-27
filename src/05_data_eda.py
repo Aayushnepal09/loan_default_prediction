@@ -385,6 +385,109 @@ def section_correlation(df):
     return parts
 
 
+# section 9: numeric features split by target class (Tukey comparison)
+
+def section_target_vs_numeric(df, num_cols):
+    """Side-by-side box plots of numeric features split by target class."""
+    parts = [heading("Section 9: Numeric Features by Target Class")]
+
+    if TARGET_COL not in df.columns or not num_cols:
+        parts.append(text("skipped - no target or no numeric columns."))
+        return parts
+
+    # pick features most correlated with target for focused comparison
+    corrs = df[num_cols].corrwith(df[TARGET_COL]).abs().sort_values(ascending=False)
+    top_features = corrs.head(12).index.tolist()
+
+    parts.append(text(
+        f"Showing top {len(top_features)} numeric features (by |correlation| with target).\n"
+        "Tukey comparison: distributions split by Fully Paid vs Charged Off."
+    ))
+
+    labels_map = {0: 'Fully Paid', 1: 'Charged Off'}
+    df_plot = df[top_features + [TARGET_COL]].copy()
+    df_plot['Target'] = df_plot[TARGET_COL].map(labels_map)
+
+    for i in range(0, len(top_features), 4):
+        batch = top_features[i:i+4]
+        fig, axes = plt.subplots(len(batch), 1, figsize=(12, 3.5 * len(batch)))
+        if len(batch) == 1:
+            axes = [axes]
+        for ax, col in zip(axes, batch):
+            data_fp = df_plot.loc[df_plot['Target'] == 'Fully Paid', col].dropna()
+            data_co = df_plot.loc[df_plot['Target'] == 'Charged Off', col].dropna()
+            bp = ax.boxplot(
+                [data_fp, data_co],
+                tick_labels=['Fully Paid', 'Charged Off'],
+                vert=True, patch_artist=True, widths=0.5,
+                medianprops=dict(color='black', linewidth=1.5),
+            )
+            bp['boxes'][0].set_facecolor('#2ecc71')
+            bp['boxes'][1].set_facecolor('#e74c3c')
+            ax.set_title(f'{col}  (|r| = {corrs[col]:.3f})', fontsize=11)
+            ax.set_ylabel(col)
+        fig.suptitle(f'Target Comparison (Page {i//4 + 1})', fontsize=13, y=1.01)
+        fig.tight_layout()
+        parts.append(fig_to_base64(fig))
+
+    print("  Section 9: Target vs Numeric [done]")
+    return parts
+
+
+# section 10: skewness and re-expression (Tukey transformation)
+
+def section_skew_transforms(df, num_cols):
+    """For heavily skewed features, show before/after log1p transformation."""
+    parts = [heading("Section 10: Skewness & Re-expression (Log Transform)")]
+
+    if not num_cols:
+        parts.append(text("no numeric columns found."))
+        return parts
+
+    skews = df[num_cols].skew().sort_values(key=abs, ascending=False)
+    highly_skewed = skews[skews.abs() > 2].head(8)
+
+    if highly_skewed.empty:
+        parts.append(text("no features with |skewness| > 2 found. No re-expression needed."))
+        return parts
+
+    skew_df = pd.DataFrame({
+        'Feature': highly_skewed.index,
+        'Skewness': highly_skewed.values.round(2),
+    })
+    parts.append(text(
+        f"{len(highly_skewed)} features with |skewness| > 2.\n"
+        "Tukey re-expression: comparing raw vs log1p(x) distributions."
+    ))
+    parts.append(table_html(skew_df.set_index('Feature')))
+
+    for i in range(0, len(highly_skewed), 2):
+        batch = highly_skewed.index[i:i+2].tolist()
+        fig, axes = plt.subplots(len(batch), 2, figsize=(14, 4 * len(batch)))
+        if len(batch) == 1:
+            axes = axes.reshape(1, -1)
+        for row, col in enumerate(batch):
+            data = df[col].dropna()
+            non_neg = data[data >= 0]
+            # raw distribution
+            axes[row, 0].hist(data, bins=50, color='steelblue', edgecolor='white', alpha=0.8)
+            axes[row, 0].set_title(f'{col}  (raw, skew={skews[col]:.2f})', fontsize=11)
+            # log1p transformed distribution
+            if len(non_neg) > 0:
+                transformed = np.log1p(non_neg)
+                new_skew = transformed.skew()
+                axes[row, 1].hist(transformed, bins=50, color='#27ae60', edgecolor='white', alpha=0.8)
+                axes[row, 1].set_title(f'{col}  (log1p, skew={new_skew:.2f})', fontsize=11)
+            else:
+                axes[row, 1].set_title(f'{col}  (log1p - skipped, has negatives)', fontsize=11)
+        fig.suptitle(f'Re-expression Exploration (Page {i//2 + 1})', fontsize=13, y=1.01)
+        fig.tight_layout()
+        parts.append(fig_to_base64(fig))
+
+    print("  Section 10: Skewness & Re-expression [done]")
+    return parts
+
+
 # build the html report
 
 def build_html_report(sections):
@@ -456,6 +559,9 @@ if __name__ == '__main__':
 
     sections.append(section_target_vs_features(df, cat_cols))
     sections.append(section_correlation(df))
+
+    sections.append(section_target_vs_numeric(df, num_cols))
+    sections.append(section_skew_transforms(df, num_cols))
 
     os.makedirs(REPORT_DIR, exist_ok=True)
     report_path = os.path.join(REPORT_DIR, 'eda_report.html')
