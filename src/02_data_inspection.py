@@ -1,22 +1,8 @@
 """
 raw_data_inspection.py
 
-Standalone exploratory data analysis on the raw 150k-row dataset.
-Run this script BEFORE data_cleaning.py to understand the data and
-make informed cleaning decisions.
-
-Input : data/processed/optimized_data_14_17.csv
-Output: printed report to stdout
-
-Sections:
-  1. Data structure & time range
-  2. Missing values
-  3. Duplicate & consistency checks
-  4. Distribution & outlier check  (key numeric columns)
-  5. Target variable & class imbalance
-  5b.Temporal drift  (charged-off rate bucketed by year)
-  6. Data type classification
-  7. Summary
+Quick look at the raw data before cleaning.
+Reads from data/processed/optimized_data_14_17.csv and prints a report.
 """
 
 import os
@@ -25,16 +11,11 @@ import pandas as pd
 
 
 def raw_data_inspection(df):
-    """
-    Comprehensive preliminary EDA before any cleaning is applied.
-    Findings are accumulated and printed as a concise summary at the end.
-    """
+    # go through the data and print out important stuff before we clean it
     SEP = "=" * 60
-    findings = {}   # accumulate key facts for the final summary
+    findings = {}
 
-    # ----------------------------------------------------------------
-    # SECTION 1: DATA STRUCTURE & TIME RANGE
-    # ----------------------------------------------------------------
+    # --- data structure and time range ---
     print(f"\n{SEP}")
     print("EDA [1/6]  DATA STRUCTURE & TIME RANGE")
     print(SEP)
@@ -42,8 +23,6 @@ def raw_data_inspection(df):
     print(f"  Rows    : {df.shape[0]:,}")
     print(f"  Columns : {df.shape[1]}")
 
-
-    # Parse issue_d once; reused in the drift section below
     issue_d_parsed = None
     if 'issue_d' in df.columns:
         issue_d_parsed = pd.to_datetime(df['issue_d'], errors='coerce')
@@ -61,9 +40,7 @@ def raw_data_inspection(df):
         findings['date_range'] = 'N/A'
         findings['is_sorted']  = 'N/A'
 
-    # ----------------------------------------------------------------
-    # SECTION 2: MISSING VALUES
-    # ----------------------------------------------------------------
+    # --- missing values ---
     print(f"\n{SEP}")
     print("EDA [2/6]  MISSING VALUES")
     print(SEP)
@@ -89,9 +66,7 @@ def raw_data_inspection(df):
     findings['cols_over_30pct']  = cols_over_30
     findings['cols_with_any_nan'] = cols_with_any
 
-    # ----------------------------------------------------------------
-    # SECTION 3: DUPLICATE & CONSISTENCY CHECK
-    # ----------------------------------------------------------------
+    # --- duplicates ---
     print(f"\n{SEP}")
     print("EDA [3/6]  DUPLICATE & CONSISTENCY CHECK")
     print(SEP)
@@ -135,9 +110,7 @@ def raw_data_inspection(df):
             status = 'OK' if result == 0 else f'WARNING  ({result:,} rows affected)'
             print(f"    {label:<40} {status}")
 
-    # ----------------------------------------------------------------
-    # SECTION 4: DISTRIBUTION & OUTLIER CHECK
-    # ----------------------------------------------------------------
+    # --- distributions and outliers ---
     print(f"\n{SEP}")
     print("EDA [4/6]  DISTRIBUTION & OUTLIER CHECK  (key numeric columns)")
     print(SEP)
@@ -165,9 +138,7 @@ def raw_data_inspection(df):
         print(f"  {col:<22} {s.min():>10,.1f} {s.median():>12,.1f} "
               f"{mean:>12,.1f} {s.max():>14,.1f}  {n_outliers:>12,}")
 
-    # ----------------------------------------------------------------
-    # SECTION 5: TARGET VARIABLE & CLASS IMBALANCE
-    # ----------------------------------------------------------------
+    # --- target variable ---
     print(f"\n{SEP}")
     print("EDA [5/6]  TARGET VARIABLE & CLASS IMBALANCE")
     print(SEP)
@@ -193,15 +164,12 @@ def raw_data_inspection(df):
             print(f"    Imbalance    : {imbalance:.1f}:1  (Fully Paid : Charged Off)")
             severity = 'Moderate' if imbalance < 5 else 'Severe'
             print(f"    Severity     : {severity}")
-            print(f"    Action needed: apply SMOTE or class_weight='balanced' "
-                  f"on training set only")
+            print(f"    Might need SMOTE or class_weight='balanced' during training")
 
             findings['pct_charged_off'] = pct_co
             findings['imbalance_ratio'] = imbalance
 
-    # ----------------------------------------------------------------
-    # SECTION 5b: TEMPORAL DRIFT
-    # ----------------------------------------------------------------
+    # --- temporal drift ---
     print(f"\n{SEP}")
     print("EDA [5b]   TEMPORAL DRIFT  (charged-off rate by year)")
     print(SEP)
@@ -234,9 +202,7 @@ def raw_data_inspection(df):
     else:
         print("  Cannot compute: 'issue_d' or 'loan_status' not available.")
 
-    # ----------------------------------------------------------------
-    # SECTION 6: DATA TYPE CLASSIFICATION
-    # ----------------------------------------------------------------
+    # --- data types ---
     print(f"\n{SEP}")
     print("EDA [6/6]  DATA TYPE CLASSIFICATION")
     print(SEP)
@@ -244,8 +210,7 @@ def raw_data_inspection(df):
     numeric_cols = df.select_dtypes(include='number').columns.tolist()
     object_cols  = df.select_dtypes(include=['object', 'string']).columns.tolist()
 
-    # Detect columns stored as strings but containing numeric values
-    # e.g. int_rate = "12.5%", emp_length = "10+ years", term = "36 months"
+    # some columns look like strings but are actually numbers (e.g. "12.5%")
     numeric_as_str = []
     for col in object_cols:
         sample = df[col].dropna().head(200)
@@ -261,7 +226,7 @@ def raw_data_inspection(df):
     print(f"  Numeric columns        : {len(numeric_cols)}")
     print(f"  Categorical columns    : {len(true_cat_cols)}")
     print(f"  Numeric-as-string cols : {len(numeric_as_str)}  "
-          f"(need type conversion in feature engineering)")
+          f"(need type conversion)")
     if numeric_as_str:
         print(f"    -> {numeric_as_str}")
 
@@ -277,9 +242,7 @@ def raw_data_inspection(df):
     findings['n_categorical']  = len(true_cat_cols)
     findings['numeric_as_str'] = numeric_as_str
 
-    # ----------------------------------------------------------------
-    # SECTION 7: SUMMARY
-    # ----------------------------------------------------------------
+    # --- summary ---
     print(f"\n{SEP}")
     print("EDA SUMMARY")
     print(SEP)
@@ -291,22 +254,21 @@ def raw_data_inspection(df):
 
     print(f"\n  Missing values:")
     print(f"    Columns >30% NaN  : {findings.get('cols_over_30pct', 0)}  "
-          f"-> will be dropped in data_cleaning.py")
+          f"-> will be dropped")
     print(f"    Columns any NaN   : {findings.get('cols_with_any_nan', 0)}  "
-          f"-> remainder imputed in feature_engineering.py")
+          f"-> will be imputed later")
 
     if 'pct_charged_off' in findings:
         print(f"\n  Class imbalance:")
         print(f"    Charged-Off rate  : {findings['pct_charged_off']:.1%}")
         print(f"    Imbalance ratio   : {findings['imbalance_ratio']:.1f}:1")
-        print(f"    Action            : balance on training set only "
-              f"(SMOTE / class_weight)")
+        print(f"    Will need to balance training set (SMOTE or class_weight)")
 
     if 'temporal_drift' in findings:
         if findings['temporal_drift']:
             print(f"\n  Temporal drift    : DETECTED  "
                   f"(rate varies {findings['drift_rate_range']:.1%} across years)")
-            print(f"    Recommendation  : use time-based train/test split")
+            print(f"    -> should use time-based train/test split")
         else:
             print(f"\n  Temporal drift    : Not significant  "
                   f"(rate range {findings['drift_rate_range']:.1%})")
@@ -320,14 +282,8 @@ def raw_data_inspection(df):
 
     print(f"\n{SEP}")
     print("END OF RAW DATA INSPECTION")
-    print(f"{SEP}")
-    print("Review the findings above, then adjust data_cleaning.py accordingly.")
     print(SEP)
 
-
-# ============================================================
-# MAIN
-# ============================================================
 
 if __name__ == '__main__':
     current_dir   = os.path.dirname(os.path.abspath(__file__))
