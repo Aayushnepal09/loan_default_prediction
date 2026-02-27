@@ -17,7 +17,7 @@ Steps:
 Imputation and encoding are deferred to feature_engineering.py
 (after train/val/test split) to prevent data leakage.
 
-Next step: data_splitting.py → EDA (train only) → feature_engineering.py.
+Next step: data_splitting.py -> EDA (train only) -> feature_engineering.py.
 """
 
 import os
@@ -26,16 +26,17 @@ import pandas as pd
 
 
 def prepare_target(df):
-    # keep only fully paid and charged off loans, make a binary column
+    # only keep loans that have actually finished - fully paid or charged off
+    # "current", "late" etc dont have a final label yet so we skip those
     completed_statuses = ['Fully Paid', 'Charged Off']
     df = df[df['loan_status'].isin(completed_statuses)].copy()
-    print(f"  Rows after filtering to completed loans: {df.shape[0]}")
+    print(f"  rows after filtering to completed loans: {df.shape[0]}")
 
     df['charged_off'] = (df['loan_status'] == 'Charged Off').astype(np.uint8)
     df.drop('loan_status', axis=1, inplace=True)
 
     dist = df['charged_off'].value_counts(normalize=True)
-    print(f"  Class distribution -> Fully Paid: {dist[0]:.1%}  |  Charged Off: {dist[1]:.1%}")
+    print(f"  class split -> fully paid: {dist[0]:.1%}  |  charged off: {dist[1]:.1%}")
     return df
 
 
@@ -46,13 +47,13 @@ def drop_high_missing_cols(df, threshold=0.3):
     missing_rate = df.isnull().mean()
     cols_to_drop = missing_rate[missing_rate > threshold].index.tolist()
     df.drop(columns=cols_to_drop, inplace=True)
-    print(f"  Dropped {len(cols_to_drop)} columns with >{threshold * 100:.0f}% missing values.")
+    print(f"  dropped {len(cols_to_drop)} columns with >{threshold * 100:.0f}% missing values.")
     return df
 
 
 def drop_leakage_cols(df):
-    # these columns contain info that wouldnt be available at the time of lending
-    # so they would leak the outcome if we kept them
+    # anything that gets filled in after the loan closes leaks the outcome
+    # e.g. total payments received, recovery amounts, settlement info
     leakage_cols = [
         'last_pymnt_amnt', 'last_pymnt_d',
         'total_pymnt', 'total_pymnt_inv',
@@ -68,12 +69,12 @@ def drop_leakage_cols(df):
     ]
     existing = [c for c in leakage_cols if c in df.columns]
     df.drop(columns=existing, inplace=True)
-    print(f"  Dropped {len(existing)} post-loan leakage columns.")
+    print(f"  dropped {len(existing)} post-loan leakage columns.")
     return df
 
 
 def drop_uninformative_cols(df):
-    # columns that wont help predict defaults - IDs, free text, near-duplicates, etc.
+    # IDs, free-text fields, near-duplicate cols, zero variance cols - none of these help
     drop_list = [
         'id', 'member_id', 'url',
         'desc', 'title', 'emp_title',
@@ -86,7 +87,7 @@ def drop_uninformative_cols(df):
         'disbursement_method',
         'application_type',
         'Unnamed: 0',
-        'grade',
+        'grade',        # almost perfectly correlated with int_rate, keeping int_rate instead
         'tax_liens',
         'acc_now_delinq',
         'num_sats',
@@ -98,7 +99,7 @@ def drop_uninformative_cols(df):
     ]
     existing = [c for c in drop_list if c in df.columns]
     df.drop(columns=existing, inplace=True)
-    print(f"  Dropped {len(existing)} uninformative columns.")
+    print(f"  dropped {len(existing)} uninformative columns.")
     return df
 
 
@@ -107,7 +108,7 @@ def fix_invalid_values(df):
     Set physically impossible values to NaN so they can be imputed later
     in feature_engineering.py (fit on train only).
 
-    Rules derived from domain knowledge — no target involved:
+    Rules derived from domain knowledge -- no target involved:
       - dti < 0         : debt-to-income ratio cannot be negative (2 rows in raw data)
       - annual_inc < 0  : income cannot be negative
       - open_acc < 0    : account count cannot be negative
@@ -128,7 +129,7 @@ def fix_invalid_values(df):
                 print(f"  '{col}': set {n} {label} to NaN.")
                 fixes += n
     if fixes == 0:
-        print("  No impossible values found.")
+        print("  no impossible values found.")
     return df
 
 
@@ -139,14 +140,11 @@ def strip_numeric_strings(df):
       - term       : " 36 months" -> 36   (strip unit suffix, cast to int)
       - int_rate   : "12.5%"      -> 12.5 (strip '%', cast to float)
       - revol_util : "45.3%"      -> 45.3 (strip '%', cast to float)
-
     """
-    # -- Term: " 36 months" -> 36 --
     if 'term' in df.columns and df['term'].dtype == object:
         df['term'] = df['term'].str.strip().str.split().str[0].astype(int)
         print("  'term': stripped unit suffix, converted to integer.")
 
-    # -- int_rate and revol_util: strip '%' --
     for col in ['int_rate', 'revol_util']:
         if col in df.columns and df[col].dtype == object:
             df[col] = df[col].str.rstrip('%').astype(float)
@@ -165,9 +163,7 @@ def parse_structured_text(df):
                            -> ordinal integer 0-10, unknown -> -1
       - earliest_cr_line : "Oct-1981" -> datetime
       - issue_d          : "2014-01-01" -> datetime
-
     """
-    # -- Employment length: ordered text -> integer (0-10), NaN -> -1 --
     if 'emp_length' in df.columns:
         emp_map = {
             '< 1 year': 0, '1 year': 1, '2 years': 2, '3 years': 3,
@@ -177,7 +173,6 @@ def parse_structured_text(df):
         df['emp_length'] = df['emp_length'].map(emp_map).fillna(-1).astype(int)
         print("  'emp_length': ordinal text -> integer (unknown -> -1).")
 
-    # -- Date columns: string -> datetime --
     if 'earliest_cr_line' in df.columns and df['earliest_cr_line'].dtype == object:
         df['earliest_cr_line'] = pd.to_datetime(
             df['earliest_cr_line'], format='%b-%Y', errors='coerce'
@@ -203,7 +198,7 @@ if __name__ == '__main__':
     print("STEP 1: Load data")
     print("=" * 60)
     df = pd.read_csv(input_path, low_memory=False)
-    print(f"  Loaded: {df.shape[0]} rows x {df.shape[1]} columns")
+    print(f"  loaded: {df.shape[0]} rows x {df.shape[1]} columns")
 
     print("\n" + "=" * 60)
     print("STEP 2: Prepare target variable")
@@ -214,21 +209,20 @@ if __name__ == '__main__':
     print("STEP 3: Drop high-missing columns  (threshold = 30%)")
     print("=" * 60)
     df = drop_high_missing_cols(df, threshold=0.3)
-    print(f"  Remaining columns: {df.shape[1]}")
+    print(f"  remaining columns: {df.shape[1]}")
 
     print("\n" + "=" * 60)
     print("STEP 4: Drop post-loan leakage columns")
     print("=" * 60)
     df = drop_leakage_cols(df)
-    print(f"  Remaining columns: {df.shape[1]}")
+    print(f"  remaining columns: {df.shape[1]}")
 
     print("\n" + "=" * 60)
     print("STEP 5: Drop uninformative columns")
     print("=" * 60)
     df = drop_uninformative_cols(df)
-    print(f"  Remaining columns: {df.shape[1]}")
+    print(f"  remaining columns: {df.shape[1]}")
 
-    # ----------------------------------------------------------
     print("\n" + "=" * 60)
     print("STEP 6: Numeric string normalization (strip suffixes/symbols)")
     print("=" * 60)
@@ -238,23 +232,21 @@ if __name__ == '__main__':
     print("STEP 7: Structured text and date parsing")
     print("=" * 60)
     df = parse_structured_text(df)
-    print(f"  Columns after type conversions: {df.shape[1]}")
+    print(f"  columns after type conversions: {df.shape[1]}")
 
-    # ----------------------------------------------------------
     print("\n" + "=" * 60)
     print("STEP 8: Fix impossible values (domain constraints)")
     print("=" * 60)
     df = fix_invalid_values(df)
 
-    # ----------------------------------------------------------
     print("\n" + "=" * 60)
     print("STEP 9: Retained columns overview")
     print("=" * 60)
     col_info = df.dtypes.reset_index()
     col_info.columns = ['column', 'dtype']
     col_info['null_pct'] = (df.isnull().mean() * 100).values
-    print(f"  Total columns retained: {df.shape[1]}")
-    print(f"  Total nulls remaining : {df.isnull().sum().sum()}\n")
+    print(f"  total columns retained: {df.shape[1]}")
+    print(f"  total nulls remaining : {df.isnull().sum().sum()}\n")
     print(f"  {'#':<4} {'Column':<35} {'Dtype':<12} {'Null%'}")
     print(f"  {'-'*4} {'-'*35} {'-'*12} {'-'*6}")
     for i, row in col_info.iterrows():
@@ -264,10 +256,10 @@ if __name__ == '__main__':
     print("STEP 10: Save output")
     print("=" * 60)
     df.to_csv(cleaned_path, index=False)
-    print(f"  Cleaned dataset saved  ->  {cleaned_path}")
+    print(f"  saved -> {cleaned_path}")
 
     print("\n" + "=" * 60)
     print("CLEANING COMPLETE")
     print("=" * 60)
     print(f"  cleaned_data.csv : {df.shape}")
-    print(f"\nNext: data_splitting.py -> EDA (train only) -> feature_engineering.py")
+    print(f"\nnext: data_splitting.py -> EDA (train only) -> feature_engineering.py")

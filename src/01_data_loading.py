@@ -4,15 +4,14 @@ import zipfile
 
 
 def load_data(file_path):
-    # loads a csv file and returns a dataframe
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-
+        raise FileNotFoundError(f"cant find file: {file_path}")
     return pd.read_csv(file_path)
 
 
 def get_year_distribution(file_path, chunk_size=100_000):
-    # reads only the issue_d column in chunks to count how many rows per year
+    # scan just the issue_d column to see how many rows per year
+    # doing it in chunks so we dont load the whole thing
     year_counts = {}
     for chunk in pd.read_csv(file_path, usecols=['issue_d'],
                               chunksize=chunk_size, compression=None,
@@ -24,7 +23,6 @@ def get_year_distribution(file_path, chunk_size=100_000):
 
 
 def print_year_distribution(year_counts, title="Year distribution"):
-    # prints a table showing rows per year
     total = year_counts.sum()
     print(f"\n{title}:")
     print(f"  {'Year':<6} {'Rows':>10}   {'%':>6}")
@@ -41,38 +39,36 @@ if __name__ == '__main__':
     raw_data_dir  = os.path.join(current_dir, '..', 'data', 'raw')
     processed_data_dir = os.path.join(current_dir, '..', 'data', 'processed')
 
-    # Dataset from Kaggle: https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
-    # download archive.zip and put it in data/raw/
+    # dataset from kaggle: https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
+    # download archive.zip and drop it in data/raw/
     raw_data_path = os.path.join(raw_data_dir, 'Loan_status_2007-2020Q3.gzip')
     zip_file_path = os.path.join(raw_data_dir, 'archive.zip')
     processed_data_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
 
-    # extract from zip if we haven't already
+    # unzip it if we havent already
     if not os.path.exists(processed_data_path):
         if os.path.exists(zip_file_path):
             try:
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     zip_ref.extract('Loan_status_2007-2020Q3.gzip', raw_data_dir)
-                print("Extraction complete.")
+                print("extracted zip ok")
             except zipfile.BadZipFile:
-                print("Error: zip file is corrupted.")
+                print("zip file is broken")
                 raise
         else:
-            print(f"Data file not found. Please download archive.zip from kaggle and place it in data/raw/")
+            print(f"put archive.zip in data/raw/ first")
 
-    # first do a quick scan to see how many rows per year
-    print("Scanning full dataset for year distribution...")
+    print("scanning full dataset for year distribution...")
     year_counts = get_year_distribution(raw_data_path)
-    print_year_distribution(year_counts, title="Full dataset - rows per year")
+    print_year_distribution(year_counts, title="all years - rows per year")
 
-    # we only want 2014-2017 because:
-    # - 2007-2013 is too sparse
-    # - 2018-2020 loans havent fully matured yet so labels arent reliable
+    # we only want 2014-2017
+    # before 2014 - too few rows, not representative
+    # after 2017 - loans not finished yet so labels are unreliable
     start_date  = pd.Timestamp('2014-01-01')
     end_date    = pd.Timestamp('2017-12-31')
-    sample_size = None   # set to like 200000 if you want a smaller sample
+    sample_size = None
 
-    # load in chunks and filter by date
     chunk_size = 100_000
     chunks = []
 
@@ -84,27 +80,25 @@ if __name__ == '__main__':
                 chunks.append(chunk)
 
         df = pd.concat(chunks, ignore_index=True)
-        df = df.sort_values('issue_d', ascending=True).reset_index(drop=True)
-        print(f"\nRows after date filter ({start_date.date()} – {end_date.date()}): {len(df):,}")
+        df = df.sort_values('issue_d').reset_index(drop=True)
+        print(f"\nrows after date filter: {len(df):,}")
 
         if sample_size is not None:
             df = df.tail(sample_size).reset_index(drop=True)
-            print(f"Sampled most recent {sample_size:,} rows.")
+            print(f"sampled {sample_size:,} most recent rows")
 
-        print(f"Date range in sample : {df['issue_d'].min().date()} to {df['issue_d'].max().date()}")
-        print(f"Final shape          : {df.shape}")
+        print(f"date range: {df['issue_d'].min().date()} to {df['issue_d'].max().date()}")
+        print(f"shape: {df.shape}")
 
-        # check the year distribution of what we loaded
         sample_dist = df['issue_d'].dt.year.value_counts().sort_index()
-        print_year_distribution(sample_dist, title="Final sample - rows per year")
+        print_year_distribution(sample_dist, title="filtered sample - rows per year")
 
-        # save it out
         os.makedirs(processed_data_dir, exist_ok=True)
         processed_file_path = os.path.join(processed_data_dir, 'optimized_data_14_17.csv')
         df.to_csv(processed_file_path, index=False)
-        print(f"\nData saved to {processed_file_path}")
+        print(f"\nsaved to {processed_file_path}")
 
     except FileNotFoundError:
-        print(f"Error: The file was not found at {raw_data_path}")
+        print(f"file not found: {raw_data_path}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"something went wrong: {e}")

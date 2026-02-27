@@ -1,10 +1,10 @@
 """
 05_data_eda.py
 
-EDA on the training set. Generates a self-contained HTML report
-with embedded plots at reports/eda/eda_report.html.
+EDA on training set only. Outputs a self-contained HTML report at
+reports/eda/eda_report.html with all plots embedded as base64 images.
 
-Run after data_splitting.py.
+Run after 04_data_splitting.py.
 """
 
 import os
@@ -17,7 +17,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# paths and settings
 current_dir = os.path.dirname(os.path.abspath(__file__))
 TRAIN_PATH  = os.path.join(current_dir, '..', 'data', 'processed', 'train.csv')
 REPORT_DIR  = os.path.join(current_dir, '..', 'reports', 'eda')
@@ -28,7 +27,7 @@ plt.rcParams.update({'figure.max_open_warning': 0})
 
 
 def fig_to_base64(fig):
-    # saves a matplotlib figure as a base64 string for embedding in html
+    # convert matplotlib figure to base64 so we can put it in html
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=120, bbox_inches='tight')
     plt.close(fig)
@@ -52,7 +51,7 @@ def table_html(df, max_rows=50):
     )
 
 
-# --- section 1: basic overview ---
+# section 1: basic overview
 
 def section_basic_overview(df):
     parts = [heading("Section 1: Basic Overview")]
@@ -72,18 +71,18 @@ def section_basic_overview(df):
         info_lines.append(f"  {str(dtype):<15} : {count}")
 
     parts.append(text("\n".join(info_lines)))
-    print("  Section 1: Basic Overview [OK]")
+    print("  Section 1: Basic Overview [done]")
     return parts
 
 
-# --- section 2: missing values ---
+# section 2: missing values
 
 def section_missing_values(df):
     parts = [heading("Section 2: Missing Values")]
 
-    missing = df.isnull().sum()
+    missing     = df.isnull().sum()
     missing_pct = (df.isnull().mean() * 100).round(2)
-    missing_df = pd.DataFrame({
+    missing_df  = pd.DataFrame({
         'Column': missing.index,
         'Missing Count': missing.values,
         'Missing %': missing_pct.values
@@ -92,9 +91,9 @@ def section_missing_values(df):
     has_missing = missing_df[missing_df['Missing Count'] > 0]
 
     if has_missing.empty:
-        parts.append(text("No missing values found!"))
+        parts.append(text("no missing values!"))
     else:
-        parts.append(text(f"Columns with missing values: {len(has_missing)} / {len(df.columns)}"))
+        parts.append(text(f"columns with missing values: {len(has_missing)} / {len(df.columns)}"))
         parts.append(table_html(has_missing.set_index('Column')))
 
         top = has_missing.head(20).sort_values('Missing %', ascending=True)
@@ -108,30 +107,30 @@ def section_missing_values(df):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    print("  Section 2: Missing Values [OK]")
+    print("  Section 2: Missing Values [done]")
     return parts
 
 
-# --- section 3: target variable ---
+# section 3: target variable
 
 def section_target_variable(df):
     parts = [heading("Section 3: Target Variable Distribution")]
 
     if TARGET_COL not in df.columns:
-        parts.append(text(f"Target column '{TARGET_COL}' not found."))
+        parts.append(text(f"target column '{TARGET_COL}' not found."))
         return parts
 
-    counts = df[TARGET_COL].value_counts()
+    counts     = df[TARGET_COL].value_counts()
     labels_map = {0: 'Fully Paid', 1: 'Charged Off'}
-    labels = [labels_map.get(v, str(v)) for v in counts.index]
-    values = counts.values
-    pcts = (values / values.sum() * 100).round(1)
+    labels     = [labels_map.get(v, str(v)) for v in counts.index]
+    values     = counts.values
+    pcts       = (values / values.sum() * 100).round(1)
 
     summary = pd.DataFrame({'Label': labels, 'Count': values, 'Percentage': pcts})
     parts.append(table_html(summary.set_index('Label')))
 
     imbalance = counts.get(0, 0) / counts.get(1, 1)
-    parts.append(text(f"Imbalance ratio: {imbalance:.1f}:1 (Fully Paid : Charged Off)"))
+    parts.append(text(f"imbalance ratio: {imbalance:.1f}:1 (Fully Paid : Charged Off)"))
 
     fig, ax = plt.subplots(figsize=(6, 4))
     colors = ['#2ecc71', '#e74c3c']
@@ -144,11 +143,11 @@ def section_target_variable(df):
     fig.tight_layout()
     parts.append(fig_to_base64(fig))
 
-    print("  Section 3: Target Variable [OK]")
+    print("  Section 3: Target Variable [done]")
     return parts
 
 
-# --- section 4: numeric stats ---
+# section 4: numeric descriptive stats
 
 def section_numeric_stats(df):
     parts = [heading("Section 4: Numeric Features - Descriptive Statistics")]
@@ -157,21 +156,21 @@ def section_numeric_stats(df):
                 if c != TARGET_COL]
 
     if not num_cols:
-        parts.append(text("No numeric columns found."))
+        parts.append(text("no numeric columns found."))
         return parts, num_cols
 
     desc = df[num_cols].describe().T
-    desc['skew'] = df[num_cols].skew()
+    desc['skew']     = df[num_cols].skew()
     desc['kurtosis'] = df[num_cols].kurtosis()
 
     parts.append(text(f"{len(num_cols)} numeric features"))
     parts.append(table_html(desc[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max', 'skew']]))
 
-    print("  Section 4: Numeric Stats [OK]")
+    print("  Section 4: Numeric Stats [done]")
     return parts, num_cols
 
 
-# --- section 5: distributions and outliers ---
+# section 5: distributions and outliers
 
 def section_numeric_distributions(df, num_cols):
     parts = [heading("Section 5: Numeric Distributions & Outliers")]
@@ -179,18 +178,18 @@ def section_numeric_distributions(df, num_cols):
     if num_cols is None or len(num_cols) == 0:
         return parts
 
-    # outlier detection using IQR
+    # outlier detection with IQR method
     outlier_rows = []
     for col in num_cols:
         if df[col].isnull().all():
             continue
-        q1 = df[col].quantile(0.25)
-        q3 = df[col].quantile(0.75)
+        q1  = df[col].quantile(0.25)
+        q3  = df[col].quantile(0.75)
         iqr = q3 - q1
-        lower = q1 - 1.5 * iqr
-        upper = q3 + 1.5 * iqr
+        lower      = q1 - 1.5 * iqr
+        upper      = q3 + 1.5 * iqr
         n_outliers = ((df[col] < lower) | (df[col] > upper)).sum()
-        pct = n_outliers / len(df) * 100
+        pct        = n_outliers / len(df) * 100
         if n_outliers > 0:
             outlier_rows.append({
                 'Column': col, 'Outliers': n_outliers, 'Outlier %': round(pct, 1),
@@ -215,7 +214,6 @@ def section_numeric_distributions(df, num_cols):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    # histograms and boxplots
     parts.append(heading("Distribution Plots", level=3))
     plot_cols = [c for c in num_cols if df[c].nunique() > 1]
 
@@ -236,11 +234,11 @@ def section_numeric_distributions(df, num_cols):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    print("  Section 5: Distributions & Outliers [OK]")
+    print("  Section 5: Distributions & Outliers [done]")
     return parts
 
 
-# --- section 6: categorical features ---
+# section 6: categorical features
 
 def section_categorical_stats(df):
     parts = [heading("Section 6: Categorical Features - Value Counts")]
@@ -249,23 +247,23 @@ def section_categorical_stats(df):
                 if c not in (TARGET_COL, 'issue_d')]
 
     if not cat_cols:
-        parts.append(text("No categorical columns found."))
+        parts.append(text("no categorical columns found."))
         return parts, cat_cols
 
     for col in cat_cols:
-        counts = df[col].value_counts()
+        counts   = df[col].value_counts()
         n_unique = df[col].nunique()
         parts.append(heading(f"{col}  ({n_unique} unique values)", level=4))
 
         top_vals = counts.head(15)
-        val_df = pd.DataFrame({
-            'Value': top_vals.index.astype(str),
-            'Count': top_vals.values,
+        val_df   = pd.DataFrame({
+            'Value':      top_vals.index.astype(str),
+            'Count':      top_vals.values,
             'Percentage': (top_vals.values / len(df) * 100).round(1)
         })
         parts.append(table_html(val_df.set_index('Value')))
 
-        if n_unique >= 4 and n_unique <= 20:
+        if 4 <= n_unique <= 20:
             fig, ax = plt.subplots(figsize=(10, 5))
             bars = ax.bar(val_df['Value'], val_df['Count'], color=plt.cm.Blues(
                 np.linspace(0.4, 0.9, len(val_df))))
@@ -278,17 +276,17 @@ def section_categorical_stats(df):
             fig.tight_layout()
             parts.append(fig_to_base64(fig))
 
-    print("  Section 6: Categorical Stats [OK]")
+    print("  Section 6: Categorical Stats [done]")
     return parts, cat_cols
 
 
-# --- section 7: charge-off rate by category ---
+# section 7: charge-off rate by category
 
 def section_target_vs_features(df, cat_cols):
     parts = [heading("Section 7: Charge-Off Rate by Category")]
 
     if TARGET_COL not in df.columns or not cat_cols:
-        parts.append(text("Skipped - no target or no categorical columns."))
+        parts.append(text("skipped - no target or no categorical columns."))
         return parts
 
     for col in cat_cols:
@@ -303,7 +301,7 @@ def section_target_vs_features(df, cat_cols):
 
         fig, ax = plt.subplots(figsize=(10, 5))
         colors = plt.cm.RdYlGn_r(grouped['Charge-Off Rate'] / grouped['Charge-Off Rate'].max())
-        bars = ax.bar(grouped[col].astype(str), grouped['Charge-Off Rate'], color=colors)
+        bars   = ax.bar(grouped[col].astype(str), grouped['Charge-Off Rate'], color=colors)
         ax.set_title(f'Charge-Off Rate by {col}', fontsize=12)
         ax.set_ylabel('Charge-Off Rate')
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y:.0%}'))
@@ -314,39 +312,38 @@ def section_target_vs_features(df, cat_cols):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    print("  Section 7: Target vs Features [OK]")
+    print("  Section 7: Target vs Features [done]")
     return parts
 
 
-# --- section 8: correlation ---
+# section 8: correlation
 
 def section_correlation(df):
     parts = [heading("Section 8: Correlation Analysis")]
 
     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     if len(num_cols) < 2:
-        parts.append(text("Not enough numeric columns for correlation."))
+        parts.append(text("not enough numeric columns for correlation."))
         return parts
 
     corr = df[num_cols].corr()
 
-    # how each feature correlates with the target
     if TARGET_COL in corr.columns:
-        target_corr = corr[TARGET_COL].drop(TARGET_COL)
+        target_corr     = corr[TARGET_COL].drop(TARGET_COL)
         target_corr_abs = target_corr.abs().sort_values(ascending=False)
 
         parts.append(heading("Top 20 Features Correlated with Target", level=3))
-        top20 = target_corr_abs.head(20)
+        top20   = target_corr_abs.head(20)
         corr_df = pd.DataFrame({
-            'Feature': top20.index,
-            'Correlation': [target_corr[c] for c in top20.index],
+            'Feature':       top20.index,
+            'Correlation':   [target_corr[c] for c in top20.index],
             '|Correlation|': top20.values
         })
         parts.append(table_html(corr_df.set_index('Feature')))
 
         plot_data = corr_df.sort_values('Correlation', ascending=True)
-        fig, ax = plt.subplots(figsize=(10, 8))
-        colors = ['#e74c3c' if v > 0 else '#3498db' for v in plot_data['Correlation']]
+        fig, ax   = plt.subplots(figsize=(10, 8))
+        colors    = ['#e74c3c' if v > 0 else '#3498db' for v in plot_data['Correlation']]
         ax.barh(plot_data['Feature'], plot_data['Correlation'], color=colors)
         ax.set_xlabel('Correlation with Charge-Off')
         ax.set_title('Top 20 Features Correlated with Charge-Off', fontsize=13)
@@ -354,15 +351,15 @@ def section_correlation(df):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    # find pairs with really high correlation
+    # highly correlated feature pairs
     parts.append(heading("Highly Correlated Feature Pairs (|r| > 0.8)", level=3))
     pairs = []
     for i in range(len(corr.columns)):
         for j in range(i+1, len(corr.columns)):
             if abs(corr.iloc[i, j]) > 0.8:
                 pairs.append({
-                    'Feature 1': corr.columns[i],
-                    'Feature 2': corr.columns[j],
+                    'Feature 1':   corr.columns[i],
+                    'Feature 2':   corr.columns[j],
                     'Correlation': round(corr.iloc[i, j], 4)
                 })
 
@@ -370,12 +367,12 @@ def section_correlation(df):
         pairs_df = pd.DataFrame(pairs).sort_values('Correlation', key=abs, ascending=False)
         parts.append(table_html(pairs_df.set_index('Feature 1')))
     else:
-        parts.append(text("No feature pairs with |r| > 0.8 found."))
+        parts.append(text("no feature pairs with |r| > 0.8 found."))
 
-    # heatmap of top features
+    # correlation heatmap for top features
     if TARGET_COL in corr.columns:
         top_features = target_corr_abs.head(15).index.tolist() + [TARGET_COL]
-        sub_corr = df[top_features].corr()
+        sub_corr     = df[top_features].corr()
 
         fig, ax = plt.subplots(figsize=(12, 10))
         sns.heatmap(sub_corr, annot=True, fmt='.2f', cmap='RdBu_r', center=0,
@@ -384,11 +381,11 @@ def section_correlation(df):
         fig.tight_layout()
         parts.append(fig_to_base64(fig))
 
-    print("  Section 8: Correlation Analysis [OK]")
+    print("  Section 8: Correlation Analysis [done]")
     return parts
 
 
-# --- build the html report ---
+# build the html report
 
 def build_html_report(sections):
     css = """
@@ -437,12 +434,12 @@ def build_html_report(sections):
 
 if __name__ == '__main__':
     print("\n" + "#" * 60)
-    print("#  EDA - Generating HTML Report")
+    print("#  EDA - generating HTML report")
     print("#" * 60)
 
     df = pd.read_csv(TRAIN_PATH, low_memory=False)
-    print(f"\n  Loaded: {TRAIN_PATH}")
-    print(f"  Shape : {df.shape[0]:,} rows x {df.shape[1]} columns\n")
+    print(f"\n  loaded: {TRAIN_PATH}")
+    print(f"  shape : {df.shape[0]:,} rows x {df.shape[1]} columns\n")
 
     sections = []
     sections.append(section_basic_overview(df))
@@ -468,5 +465,5 @@ if __name__ == '__main__':
         f.write(html)
 
     abs_path = os.path.abspath(report_path)
-    print(f"\n  Report saved: {abs_path}")
-    print(f"  Open in browser: file:///{abs_path.replace(os.sep, '/')}")
+    print(f"\n  report saved: {abs_path}")
+    print(f"  open in browser: file:///{abs_path.replace(os.sep, '/')}")
