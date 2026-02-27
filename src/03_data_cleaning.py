@@ -23,6 +23,7 @@ Next step: data_splitting.py -> EDA (train only) -> feature_engineering.py.
 import os
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_object_dtype
 
 
 def prepare_target(df):
@@ -141,12 +142,12 @@ def strip_numeric_strings(df):
       - int_rate   : "12.5%"      -> 12.5 (strip '%', cast to float)
       - revol_util : "45.3%"      -> 45.3 (strip '%', cast to float)
     """
-    if 'term' in df.columns and df['term'].dtype == object:
+    if 'term' in df.columns and not pd.api.types.is_numeric_dtype(df['term']):
         df['term'] = df['term'].str.strip().str.split().str[0].astype(int)
         print("  'term': stripped unit suffix, converted to integer.")
 
     for col in ['int_rate', 'revol_util']:
-        if col in df.columns and df[col].dtype == object:
+        if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
             df[col] = df[col].str.rstrip('%').astype(float)
             print(f"  '{col}': stripped '%', converted to float.")
 
@@ -164,7 +165,7 @@ def parse_structured_text(df):
       - earliest_cr_line : "Oct-1981" -> datetime
       - issue_d          : "2014-01-01" -> datetime
     """
-    if 'emp_length' in df.columns:
+    if 'emp_length' in df.columns and not pd.api.types.is_numeric_dtype(df['emp_length']):
         emp_map = {
             '< 1 year': 0, '1 year': 1, '2 years': 2, '3 years': 3,
             '4 years':  4, '5 years': 5, '6 years': 6, '7 years': 7,
@@ -173,13 +174,13 @@ def parse_structured_text(df):
         df['emp_length'] = df['emp_length'].map(emp_map).fillna(-1).astype(int)
         print("  'emp_length': ordinal text -> integer (unknown -> -1).")
 
-    if 'earliest_cr_line' in df.columns and df['earliest_cr_line'].dtype == object:
+    if 'earliest_cr_line' in df.columns and not pd.api.types.is_numeric_dtype(df['earliest_cr_line']):
         df['earliest_cr_line'] = pd.to_datetime(
             df['earliest_cr_line'], format='%b-%Y', errors='coerce'
         )
         print("  'earliest_cr_line': parsed to datetime (format='%b-%Y').")
 
-    if 'issue_d' in df.columns and df['issue_d'].dtype == object:
+    if 'issue_d' in df.columns and not pd.api.types.is_numeric_dtype(df['issue_d']):
         df['issue_d'] = pd.to_datetime(df['issue_d'], errors='coerce')
         print("  'issue_d': parsed to datetime.")
 
