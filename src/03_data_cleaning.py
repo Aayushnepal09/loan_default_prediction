@@ -135,6 +135,11 @@ def drop_uninformative_cols(df):
         'tax_liens',              # 96%+ zero; too sparse to contribute signal
         'acc_now_delinq',         # 99%+ zero; near-constant
         'num_sats',               # identical distribution to open_acc; redundant
+        'delinq_amnt',            # companion to acc_now_delinq (already dropped); 99%+ zero, skew=77
+        'num_tl_30dpd',           # 99.6% zero; near-constant within approved-loan population
+        'chargeoff_within_12_mths', # 99.1% zero; borrowers with recent chargeoffs can't pass LC underwriting
+        'collections_12_mths_ex_med', # 98.2% zero; near-constant after LC approval filter
+        'num_tl_120dpd_2m',       # 95.5% zero; 2-month window too narrow, near-constant
     ]
     existing = [c for c in drop_list if c in df.columns]
     df.drop(columns=existing, inplace=True)
