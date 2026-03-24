@@ -80,13 +80,12 @@ def run(
     metrics = _evaluate_proba(y_val, y_score_best)
 
    
-    logger.info(sep)
     logger.info("RESULT  KNN  (best k=%d, subset=%d)", best_k, subset_size)
     logger.info("  AUC-ROC  : %.4f", metrics["auc_roc"])
     logger.info("  AUC-PR   : %.4f", metrics["auc_pr"])
     logger.info("  KS       : %.4f", metrics["ks"])
     logger.info("  Fit time : %.1fs  (subset fit only)", best_fit_time)
-    logger.info(sep)
+
 
     return {
         "model":       "KNN",
