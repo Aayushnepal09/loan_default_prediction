@@ -68,6 +68,7 @@ SUB_GRADE_ORDER = [f"{g}{n}" for g in "ABCDEFG" for n in range(1, 6)]
 # Columns with high right-skew that respond well to log1p
 # dti: cap at 99th percentile first (max=999 is a data error), then log1p
 SKEWED_COLS = [
+    "bc_open_to_buy",
     "annual_inc",
     "revol_bal",
     "tot_cur_bal",
