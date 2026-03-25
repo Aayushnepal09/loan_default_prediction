@@ -50,7 +50,11 @@ def run(
     model.fit(X_train, y_train)
     fit_time = time.time() - t0
 
-    y_score = model.predict_proba(X_val)[:, 1]
+    # sklearn may type this as ndarray or list[ndarray] for multi-output tasks.
+    proba = model.predict_proba(X_val)
+    if isinstance(proba, list):
+        proba = proba[0]
+    y_score = np.asarray(proba)[:, 1]
     metrics = _evaluate_proba(y_val, y_score)
 
     sep = "=" * 60
@@ -85,9 +89,9 @@ if __name__ == "__main__":
     train_df = pd.read_csv(os.path.join(DATA_DIR, "train_features.csv"))
     val_df   = pd.read_csv(os.path.join(DATA_DIR, "val_features.csv"))
 
-    X_train = train_df.drop(columns=[TARGET]).values
-    y_train = train_df[TARGET].values.astype(int)
-    X_val   = val_df.drop(columns=[TARGET]).values
-    y_val   = val_df[TARGET].values.astype(int)
+    X_train = np.asarray(train_df.drop(columns=[TARGET]).values)
+    y_train = np.asarray(train_df[TARGET].values, dtype=np.int64)
+    X_val   = np.asarray(val_df.drop(columns=[TARGET]).values)
+    y_val   = np.asarray(val_df[TARGET].values, dtype=np.int64)
 
     run(X_train, y_train, X_val, y_val)
