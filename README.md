@@ -32,6 +32,11 @@ Eas587_project/
 └── README.md
 ```
 
+### MCP Server Deployment
+This repository includes a fully functioning Model Context Protocol (MCP) server that exposes the trained loan default model to AI assistants like Claude Desktop.
+Setup instructions and documentation can be found in `src/mcp/README.md`.
+
+
 ## Setup
 
 Need Python 3.10+ and these packages:

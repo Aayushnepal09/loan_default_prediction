@@ -160,5 +160,18 @@ We compared our Baseline Logistic Regression, Single Decision Tree, and XGBoost 
 
 ---
 
+## MCP Deployment Reflection
+
+**(a) Model Choice**
+We chose to deploy our **XGBoost** model because it demonstrated the highest predictive accuracy (AUC-ROC 0.7240). However, if rapid deployment or edge-device compatibility were our single primary goals, we would likely have chosen Logistic Regression instead. While XGBoost is more accurate, the Scikit-Learn `Pipeline` coupled with the XGBoost library introduces serialization complexities and a significantly larger memory footprint compared to a simple array of linear coefficients.
+
+**(b) Deployment Challenges**
+Our main hurdle was serializing and deserializing custom preprocessing classes (`OutlierCapper`, `MacroJoiner`, etc.). Because `pickle` expects custom classes to exist in the exact namespace they were saved in, our `server.py` script initially crashed on startup with an `AttributeError`. We solved this by dynamically injecting the pipeline module into the `__main__` namespace before loading the `.pkl` file. Another challenge involved API design: our model requires 110 features, but an LLM prompt won't reasonably provide 110 inputs. We resolved this by defining a subset of 17 mandatory inputs for the prompt and filling the remaining secondary features with population medians dynamically in the MCP server.
+
+**(c) Forward-Looking**
+Knowing the model will interact with an LLM via MCP greatly influences our Phase 3 and 4 plans. Moving forward, we will prioritize models that can handle missing values natively (like HistGradientBoosting) rather than relying on strict upstream imputation pipelines that break if the LLM cannot supply a specific parameter. We will also focus on outputting explicit risk factors alongside raw probabilities, allowing the AI assistant to provide better, human-readable explanations to the end user.
+
+---
+
 ## Code Verification
 *Verification Statement:* We conducted a "dry run" of our entire pipeline on a clean terminal instance. Using our customized `generate_visualizations.py` and modular pipeline, the code executes completely without manual intervention. Random seeds (`42`) were fixed across all tuning, splitting, and training files to ensure reproducibility.
