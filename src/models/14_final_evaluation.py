@@ -10,6 +10,7 @@ import logging
 import os
 import pickle
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -158,8 +159,8 @@ def evaluate(data_dir, artifact_dir):
 
 
 if __name__ == "__main__":
-    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-    DATA_DIR = os.getenv("DATA_DIR", os.path.join(root, "data", "processed"))
-    ARTIFACT_DIR = os.getenv("ARTIFACT_DIR", DATA_DIR)
+    root = Path(__file__).resolve().parent.parent.parent
+    DATA_DIR = str(root / "data" / "processed")
+    ARTIFACT_DIR = str(root / "models")
 
-    evaluate(DATA_DIR, ARTIFACT_DIR)
+    evaluate(DATA_DIR, ARTIFACT_DIR) 
