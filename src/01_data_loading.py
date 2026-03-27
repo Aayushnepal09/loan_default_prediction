@@ -1,3 +1,9 @@
+"""
+Phase 1: Data Loading
+This script extracts the raw Lending Club dataset from the archive and filters it to loans issued between 2014 and 2017,
+saving the output for inspection and cleaning.
+"""
+
 import pandas as pd
 import os
 import zipfile
