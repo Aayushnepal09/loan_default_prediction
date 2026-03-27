@@ -1,12 +1,10 @@
 """
-14_final_evaluation.py - Final Test Set Evaluation
-
-Loads the best model from 13_model_selection.py and runs it once on the
-held-out test set. 
-
+Phase 2: Final Test Evaluation
+This script loads the strictly held-out 2017 test set and applies our best model (XGBoost)
+to evaluate final, unbiased generalization accuracy.
 """
 
-import logging
+
 import os
 import pickle
 import warnings
@@ -29,12 +27,6 @@ from sklearn.metrics import (
 
 warnings.filterwarnings("ignore")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 
@@ -106,28 +98,28 @@ def evaluate(data_dir, artifact_dir):
     with open(model_path, "rb") as fh:
         model = pickle.load(fh)
     model_name = type(model).__name__
-    logger.info("Loaded best model: %s", model_name)
+    print("Loaded best model: %s", model_name)
 
     test_df = pd.read_csv(os.path.join(data_dir, "test_features.csv"))
-    logger.info("Test set: %s", test_df.shape)
+    print("Test set: %s", test_df.shape)
 
     X_test = test_df.drop(columns=[TARGET]).values
     y_test = test_df[TARGET].values.astype(int)
-    logger.info("Class balance (test) — 0: %.1f%%  1: %.1f%%",
+    print("Class balance (test) — 0: %.1f%%  1: %.1f%%",
                 (y_test == 0).mean() * 100, (y_test == 1).mean() * 100)
 
     y_score = model.predict_proba(X_test)[:, 1]
     proba = eval_proba(y_test, y_score)
     thresh = eval_at_youden(y_test, y_score)
 
-    logger.info("FINAL TEST SET EVALUATION - %s", model_name)
-    logger.info("AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
+    print("FINAL TEST SET EVALUATION - %s", model_name)
+    print("AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
                 proba["auc_roc"], proba["auc_pr"], proba["ks"])
-    logger.info("Youden threshold=%.4f | Accuracy=%.4f  Precision=%.4f  Recall=%.4f  F1=%.4f",
+    print("Youden threshold=%.4f | Accuracy=%.4f  Precision=%.4f  Recall=%.4f  F1=%.4f",
                 thresh["threshold"], thresh["accuracy"],
                 thresh["precision"], thresh["recall"], thresh["f1"])
     cm = thresh["confusion_matrix"]
-    logger.info("Confusion matrix: TN=%d  FP=%d  FN=%d  TP=%d",
+    print("Confusion matrix: TN=%d  FP=%d  FN=%d  TP=%d",
                 cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
 
     mlflow_uri = f"file:{os.path.join(artifact_dir, 'mlruns')}"
@@ -154,7 +146,7 @@ def evaluate(data_dir, artifact_dir):
 
     plt.close(roc_fig)
     plt.close(cm_fig)
-    logger.info("Logged to MLflow (%s)", mlflow_uri)
+    print("Logged to MLflow (%s)", mlflow_uri)
 
 
 if __name__ == "__main__":
