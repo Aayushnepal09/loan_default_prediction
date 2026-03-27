@@ -21,6 +21,7 @@ import os
 import pickle
 import time
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -413,10 +414,10 @@ def train(data_dir: str, artifact_dir: str) -> None:
 
 
 if __name__ == "__main__":
-    _src_dir  = os.path.dirname(os.path.abspath(__file__))
-    _root_dir = os.path.join(_src_dir, "..")
 
-    DATA_DIR     = os.getenv("DATA_DIR",     os.path.join(_root_dir, "data", "processed"))
-    ARTIFACT_DIR = os.getenv("ARTIFACT_DIR", DATA_DIR)
+    current_dir = Path(__file__).resolve().parent
+    _root_dir = current_dir.parent.parent
 
+    DATA_DIR     = os.path.join(_root_dir, "data", "processed")
+    ARTIFACT_DIR = os.path.join(_root_dir, "models")
     train(DATA_DIR, ARTIFACT_DIR)
