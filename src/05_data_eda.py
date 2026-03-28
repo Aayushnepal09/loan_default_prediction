@@ -1,11 +1,9 @@
 """
-05_data_eda.py
-
-EDA on training set only. Outputs a self-contained HTML report at
-reports/eda/eda_report.html with all plots embedded as base64 images.
-
-Run after 04_data_splitting.py.
+Phase 1: Exploratory Data Analysis
+This script generates an HTML report showing distributions, correlations, and outliers for the training
+dataset to inform our feature engineering strategy.
 """
+
 
 import os
 import io

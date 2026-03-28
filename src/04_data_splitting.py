@@ -1,12 +1,9 @@
 """
-data_splitting.py
-
-Splits cleaned_data.csv into train/val/test using time-based split.
-Train+Val = 2014-2016 (80/20 chronological), Test = 2017.
-
-We do it this way because charge-off rates drift year-over-year
-so a random split would leak future info into training.
+Phase 1: Data Splitting
+This script chronologically splits the dataset into training (2014-2016), validation (2014-2016 20%),
+and testing (2017) sets to prevent data leakage from future events.
 """
+
 
 import os
 import pandas as pd

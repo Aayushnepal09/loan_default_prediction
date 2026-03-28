@@ -1,10 +1,9 @@
 """
-07_model_knn.py - K-Nearest Neighbors (Dead-End)
-
-KNN is included as a dead-end 
+Phase 2: K-Nearest Neighbors (k-NN) Model
+This script trains a baseline k-NN classifier on a downsampled subset of the training data,
+since computing distances across 800k+ rows is too computationally expensive.
 """
 
-import logging
 import os
 import time
 import warnings
@@ -24,12 +23,6 @@ from sklearn.neighbors import KNeighborsClassifier
 
 warnings.filterwarnings("ignore")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 RANDOM_STATE = 42
@@ -97,7 +90,7 @@ def save_metrics_table(metrics, k, train_n, val_n, out_dir):
     path = os.path.join(out_dir, "knn_metrics_table.png")
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def save_plots(y_val, y_score, metrics, k, out_dir):
@@ -116,7 +109,7 @@ def save_plots(y_val, y_score, metrics, k, out_dir):
     path = os.path.join(out_dir, "knn_roc_curve.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
     # Precision-Recall curve
     precision_vals, recall_vals, _ = precision_recall_curve(y_val, y_score)
@@ -134,11 +127,11 @@ def save_plots(y_val, y_score, metrics, k, out_dir):
     path = os.path.join(out_dir, "knn_pr_curve.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def run(X_train, y_train, X_val, y_val, save_plots_flag=False, figures_dir=FIGURES_DIR):
-    logger.info("KNN k=%d | train=%d | val=%d", K_NEIGHBORS, len(X_train), len(X_val))
+    print("KNN k=%d | train=%d | val=%d" % (K_NEIGHBORS, len(X_train), len(X_val)))
 
     t0 = time.time()
     model = KNeighborsClassifier(n_neighbors=K_NEIGHBORS, n_jobs=-1)
@@ -149,12 +142,12 @@ def run(X_train, y_train, X_val, y_val, save_plots_flag=False, figures_dir=FIGUR
     y_score = model.predict_proba(X_val)[:, 1]
     pred_time = time.time() - t1
 
-    logger.info("fit=%.1fs  predict=%.1fs", fit_time, pred_time)
+    print("fit=%.1fs  predict=%.1fs" % (fit_time, pred_time))
 
     metrics = evaluate(y_val, y_score)
-    logger.info("AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f", metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    logger.info("Accuracy=%.4f  Precision=%.4f  Recall=%.4f",
-                metrics["accuracy"], metrics["precision"], metrics["recall"])
+    print("AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("Accuracy=%.4f  Precision=%.4f  Recall=%.4f" % (
+                metrics["accuracy"], metrics["precision"], metrics["recall"]))
 
     if save_plots_flag:
         save_metrics_table(metrics, K_NEIGHBORS, len(X_train), len(X_val), figures_dir)

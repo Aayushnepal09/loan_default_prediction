@@ -1,10 +1,9 @@
 """
-08_model_svm.py - Linear SVM (Dead-End)
-
-LinearSVC is evaluated as a dead-end 
+Phase 2: Support Vector Machine (LinearSVC)
+This script trains a fast, linear SVM on the full dataset. We wrap it in a CalibratedClassifierCV
+so we can extract predicted probabilities required for calculating the ROC-AUC score.
 """
 
-import logging
 import os
 import time
 import warnings
@@ -25,12 +24,6 @@ from sklearn.svm import LinearSVC
 
 warnings.filterwarnings("ignore")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 RANDOM_STATE = 42
@@ -97,7 +90,7 @@ def save_metrics_table(metrics, best_C, train_n, val_n, out_dir):
     path = os.path.join(out_dir, "svm_metrics_table.png")
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def save_plots(y_val, y_score, metrics, best_C, out_dir):
@@ -116,7 +109,7 @@ def save_plots(y_val, y_score, metrics, best_C, out_dir):
     path = os.path.join(out_dir, "svm_roc_curve.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
     # Precision-Recall curve
     precision_vals, recall_vals, _ = precision_recall_curve(y_val, y_score)
@@ -134,14 +127,14 @@ def save_plots(y_val, y_score, metrics, best_C, out_dir):
     path = os.path.join(out_dir, "svm_pr_curve.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def run(X_train, y_train, X_val, y_val, save_plots_flag=False, figures_dir=FIGURES_DIR):
     best_auc, best_C, best_model, best_fit_time = -1.0, None, None, 0.0
 
     for C in [0.01, 0.1, 1.0]:
-        logger.info("Training LinearSVC C=%.2f on %d rows", C, len(X_train))
+        print("Training LinearSVC C=%.2f on %d rows" % (C, len(X_train)))
         t0 = time.time()
         base = LinearSVC(C=C, class_weight="balanced", max_iter=2000, random_state=RANDOM_STATE)
         model = CalibratedClassifierCV(base, cv=3, n_jobs=-1)
@@ -150,7 +143,7 @@ def run(X_train, y_train, X_val, y_val, save_plots_flag=False, figures_dir=FIGUR
 
         y_score = model.predict_proba(X_val)[:, 1]
         auc = roc_auc_score(y_val, y_score)
-        logger.info("  C=%.2f | fit=%.1fs | AUC-ROC=%.4f", C, fit_time, auc)
+        print("  C=%.2f | fit=%.1fs | AUC-ROC=%.4f" % (C, fit_time, auc))
 
         if auc > best_auc:
             best_auc, best_C, best_model, best_fit_time = auc, C, model, fit_time
@@ -158,10 +151,10 @@ def run(X_train, y_train, X_val, y_val, save_plots_flag=False, figures_dir=FIGUR
     y_score_best = best_model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score_best)
 
-    logger.info("Best C=%.2f | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                best_C, metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    logger.info("Accuracy=%.4f  Precision=%.4f  Recall=%.4f",
-                metrics["accuracy"], metrics["precision"], metrics["recall"])
+    print("Best C=%.2f | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                best_C, metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("Accuracy=%.4f  Precision=%.4f  Recall=%.4f" % (
+                metrics["accuracy"], metrics["precision"], metrics["recall"]))
 
     if save_plots_flag:
         save_metrics_table(metrics, best_C, len(X_train), len(X_val), figures_dir)

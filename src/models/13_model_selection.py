@@ -1,17 +1,9 @@
 """
-13_model_selection.py - Model Selection with Optuna Hyperparameter Tuning
-
-Trains and compares 4 models on the val set, selects the best by AUC-ROC.
-Saves per-model figures (metrics table, ROC, PR) and a cross-model comparison chart.
-
-Models:
-  Logistic Regression  - baseline, no tuning
-  Decision Tree        - Optuna TPE, 50 trials
-  XGBoost              - Optuna TPE, 50 trials
-  HistGradientBoosting - Optuna TPE, 50 trials
+Phase 2: Model Selection
+This script compares the validation metrics of our different models and saves the single
+best-performing algorithm as a serialized pickle file for final evaluation and deployment.
 """
 
-import logging
 import os
 import pickle
 import time
@@ -40,12 +32,6 @@ from xgboost import XGBClassifier
 warnings.filterwarnings("ignore")
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 RANDOM_STATE = 42
@@ -105,7 +91,7 @@ def save_model_plots(result, y_val, figures_dir):
     path = out_dir / f"{name}_metrics_table.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
     # ROC curve
     fig, ax = plt.subplots(figsize=(5, 4))
@@ -120,7 +106,7 @@ def save_model_plots(result, y_val, figures_dir):
     path = out_dir / f"{name}_roc_curve.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
     # Precision-Recall curve
     precision_vals, recall_vals, _ = precision_recall_curve(y_val, y_score)
@@ -137,7 +123,7 @@ def save_model_plots(result, y_val, figures_dir):
     path = out_dir / f"{name}_pr_curve.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def save_comparison_chart(results, figures_dir):
@@ -176,11 +162,11 @@ def save_comparison_chart(results, figures_dir):
     path = out_dir / "model_comparison.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    logger.info("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def run_logistic(X_train, y_train, X_val, y_val):
-    logger.info("Logistic Regression (baseline)")
+    print("Logistic Regression (baseline)")
     t0 = time.time()
     model = LogisticRegression(
         class_weight="balanced", max_iter=1000,
@@ -191,8 +177,8 @@ def run_logistic(X_train, y_train, X_val, y_val):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    logger.info("LR | fit=%.1fs | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                fit_time, metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
+    print("LR | fit=%.1fs | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                fit_time, metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
 
     return {
         "model": "LogisticRegression",
@@ -209,7 +195,7 @@ def run_logistic(X_train, y_train, X_val, y_val):
 
 
 def run_optuna_dt(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
-    logger.info("Decision Tree (Optuna, %d trials)", n_trials)
+    print("Decision Tree (Optuna, %d trials)" % (n_trials,))
 
     def objective(trial):
         params = {
@@ -238,9 +224,9 @@ def run_optuna_dt(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    logger.info("DT best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    logger.info("DT best params: %s", study.best_params)
+    print("DT best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("DT best params: %s" % (study.best_params,))
 
     return {
         "model": "DecisionTree",
@@ -258,7 +244,7 @@ def run_optuna_dt(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
 def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
     scale_pos_weight = float((y_train == 0).sum() / (y_train == 1).sum())
-    logger.info("XGBoost (Optuna, %d trials)  scale_pos_weight=%.2f", n_trials, scale_pos_weight)
+    print("XGBoost (Optuna, %d trials)  scale_pos_weight=%.2f" % (n_trials, scale_pos_weight))
 
     def objective(trial):
         params = {
@@ -301,9 +287,9 @@ def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    logger.info("XGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    logger.info("XGB best params: %s", study.best_params)
+    print("XGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("XGB best params: %s" % (study.best_params,))
 
     return {
         "model": "XGBoost",
@@ -320,7 +306,7 @@ def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
 
 def run_optuna_hgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
-    logger.info("HistGradientBoosting (Optuna, %d trials)", n_trials)
+    print("HistGradientBoosting (Optuna, %d trials)" % (n_trials,))
 
     def objective(trial):
         params = {
@@ -351,9 +337,9 @@ def run_optuna_hgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    logger.info("HGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    logger.info("HGB best params: %s", study.best_params)
+    print("HGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("HGB best params: %s" % (study.best_params,))
 
     return {
         "model": "HistGradientBoosting",
@@ -374,14 +360,14 @@ def train(data_dir, artifact_dir):
 
     train_df = pd.read_csv(os.path.join(data_dir, "train_features.csv"))
     val_df = pd.read_csv(os.path.join(data_dir, "val_features.csv"))
-    logger.info("Loaded train=%s  val=%s", train_df.shape, val_df.shape)
+    print("Loaded train=%s  val=%s" % (train_df.shape, val_df.shape))
 
     X_train = train_df.drop(columns=[TARGET]).values
     y_train = train_df[TARGET].values.astype(int)
     X_val = val_df.drop(columns=[TARGET]).values
     y_val = val_df[TARGET].values.astype(int)
-    logger.info("Class balance (train) — 0: %.1f%%  1: %.1f%%",
-                (y_train == 0).mean() * 100, (y_train == 1).mean() * 100)
+    print("Class balance (train) — 0: %.1f%%  1: %.1f%%" % (
+                (y_train == 0).mean() * 100, (y_train == 1).mean() * 100))
 
     results = [
         run_logistic(X_train, y_train, X_val, y_val),
@@ -390,16 +376,16 @@ def train(data_dir, artifact_dir):
         run_optuna_hgb(X_train, y_train, X_val, y_val),
     ]
 
-    logger.info("%-26s %-10s %-10s %-10s %-8s %-10s",
-                "Model", "Type", "AUC-ROC", "AUC-PR", "KS", "Time(s)")
+    print("%-26s %-10s %-10s %-10s %-8s %-10s" % (
+                "Model", "Type", "AUC-ROC", "AUC-PR", "KS", "Time(s)"))
     for r in results:
-        logger.info("%-26s %-10s %-10.4f %-10.4f %-8.4f %-10.1f",
+        print("%-26s %-10s %-10.4f %-10.4f %-8.4f %-10.1f" % (
                     r["model"], r["type"],
-                    r["val_auc_roc"], r["val_auc_pr"], r["val_ks"], r["fit_time_s"])
+                    r["val_auc_roc"], r["val_auc_pr"], r["val_ks"], r["fit_time_s"]))
 
     tuned = [r for r in results if r["type"] == "tuned"]
     best = max(tuned, key=lambda r: r["val_auc_roc"])
-    logger.info("Best model: %s  AUC-ROC=%.4f", best["model"], best["val_auc_roc"])
+    print("Best model: %s  AUC-ROC=%.4f" % (best["model"], best["val_auc_roc"]))
 
     # Save per-model figures and comparison chart
     for r in results:
@@ -410,7 +396,7 @@ def train(data_dir, artifact_dir):
     model_path = os.path.join(artifact_dir, "best_model.pkl")
     with open(model_path, "wb") as fh:
         pickle.dump(best["model_obj"], fh)
-    logger.info("Best model saved -> %s", model_path)
+    print("Best model saved -> %s" % (model_path,))
 
     # Save results CSV
     results_df = pd.DataFrame([
@@ -426,7 +412,7 @@ def train(data_dir, artifact_dir):
     ])
     results_csv = os.path.join(artifact_dir, "model_results.csv")
     results_df.to_csv(results_csv, index=False)
-    logger.info("Results saved -> %s", results_csv)
+    print("Results saved -> %s" % (results_csv,))
 
     # MLflow logging
     mlflow_uri = f"file:{os.path.join(artifact_dir, 'mlruns')}"
@@ -449,8 +435,8 @@ def train(data_dir, artifact_dir):
             if is_best:
                 mlflow.sklearn.log_model(r["model_obj"], "best_model")
 
-    logger.info("MLflow logging complete")
-    logger.info("Done. Next: 14_final_evaluation.py")
+    print("MLflow logging complete")
+    print("Done. Next: 14_final_evaluation.py")
 
 
 if __name__ == "__main__":

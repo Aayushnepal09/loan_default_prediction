@@ -1,11 +1,9 @@
 """
-09_model_lr.py - Logistic Regression (Baseline)
-
-No hyperparameter tuning. This sets the minimum performance bar
-that all other models need to beat.
+Phase 2: Logistic Regression
+This script establishes a strong, interpretable baseline using Logistic Regression,
+which calculates the risk weighting of every feature linearly.
 """
 
-import logging
 import os
 import time
 import warnings
@@ -16,12 +14,6 @@ from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 
 warnings.filterwarnings("ignore")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 RANDOM_STATE = 42
@@ -37,7 +29,7 @@ def evaluate(y_true, y_score):
 
 
 def run(X_train, y_train, X_val, y_val):
-    logger.info("Training Logistic Regression on %d rows", len(X_train))
+    print("Training Logistic Regression on %d rows" % (len(X_train),))
 
     t0 = time.time()
     model = LogisticRegression(
@@ -52,8 +44,8 @@ def run(X_train, y_train, X_val, y_val):
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
 
-    logger.info("Logistic Regression | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time)
+    print("Logistic Regression | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time))
 
     return {
         "model": "LogisticRegression",

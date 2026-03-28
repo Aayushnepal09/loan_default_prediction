@@ -1,24 +1,9 @@
 """
-data_cleaning.py
-
-Data cleaning pipeline (pre-split stage).
-Input : data/processed/optimized_data_14_17.csv
-Output: data/processed/cleaned_data.csv
-
-Steps:
-  1. Filter loan_status and create binary target variable
-  2. Drop columns with >30% missing values
-  3. Drop post-loan leakage columns
-  4. Drop uninformative columns
-  5. Type conversions
-  6. Retained columns overview
-  7. Save output
-
-Imputation and encoding are deferred to feature_engineering.py
-(after train/val/test split) to prevent data leakage.
-
-Next step: data_splitting.py -> EDA (train only) -> feature_engineering.py.
+Phase 1: Data Cleaning
+This script drops features with >30% missing values, removes data-leakage columns (like total payments received),
+and fixes data types so the dataset is ready for splitting.
 """
+
 
 import os
 import numpy as np
