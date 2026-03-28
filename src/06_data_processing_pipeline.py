@@ -1,9 +1,10 @@
 """
-06_data_processing_pipeline.py
-
+Phase 2: Data Processing Pipeline
+This script builds the final Scikit-Learn preprocessing pipeline (imputation, scaling, encoding)
+and saves the transformed feature matrices for model training.
 """
 
-import logging
+
 import os
 import pickle
 import warnings
@@ -25,14 +26,9 @@ from sklearn.preprocessing import (
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+import logging
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.DEBUG)
 
 # Module-level helpers 
 
@@ -111,13 +107,13 @@ OHE_COLS = ["home_ownership", "verification_status", "purpose", "addr_state",
 
 class DropCorrelated(BaseEstimator, TransformerMixin):
 
-    def __init__(self, cols: list):
+    def __init__(self, cols):
         self.cols = cols
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         to_drop = [c for c in self.cols if c in X.columns]
         logger.debug("DropCorrelated: removing %d columns", len(to_drop))
         return X.drop(columns=to_drop)
@@ -127,10 +123,10 @@ class DropCorrelated(BaseEstimator, TransformerMixin):
 
 class DateExtractor(BaseEstimator, TransformerMixin):
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         X = X.copy()
 
         issue = pd.to_datetime(X["issue_d"], errors="coerce")
@@ -152,10 +148,10 @@ class DateExtractor(BaseEstimator, TransformerMixin):
 
 class FeatureConstructor(BaseEstimator, TransformerMixin):
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         X = X.copy()
 
         X["loan_to_income"] = X["loan_amnt"] / (X["annual_inc"] + 1.0)
@@ -181,22 +177,22 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
 
 class OutlierCapper(BaseEstimator, TransformerMixin):
 
-    def __init__(self, cols: list, upper_quantile: float = 0.99):
+    def __init__(self, cols, upper_quantile= 0.99):
         self.cols = cols
         self.upper_quantile = upper_quantile
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         self.caps_ = {
             col: X[col].quantile(self.upper_quantile)
             for col in self.cols
             if col in X.columns
         }
         for col, cap in self.caps_.items():
-            logger.info("OutlierCapper: '%s' capped at %.2f (p%.0f)",
+            print("OutlierCapper: '%s' capped at %.2f (p%.0f)",
                         col, cap, self.upper_quantile * 100)
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         X = X.copy()
         for col, cap in self.caps_.items():
             if col in X.columns:
@@ -208,14 +204,14 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
 
 class MissingIndicatorAdder(BaseEstimator, TransformerMixin):
 
-    def __init__(self, cols: list):
+    def __init__(self, cols):
         self.cols = cols
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         self.cols_present_ = [c for c in self.cols if c in X.columns]
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         X = X.copy()
         for col in self.cols_present_:
             X[f"{col}_missing"] = X[col].isna().astype(float)
@@ -227,11 +223,11 @@ class MissingIndicatorAdder(BaseEstimator, TransformerMixin):
 
 class MacroJoiner(BaseEstimator, TransformerMixin):
 
-    def __init__(self, start: str = "2013-01-01", end: str = "today"):
+    def __init__(self, start= "2013-01-01", end= "today"):
         self.start = start
         self.end = end
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         end = pd.Timestamp.today().strftime("%Y-%m-%d") if self.end == "today" else self.end
         try:
             raw = web.DataReader("UNRATE", "fred", self.start, end).reset_index()
@@ -239,14 +235,14 @@ class MacroJoiner(BaseEstimator, TransformerMixin):
             raw["year"]  = raw["date"].dt.year
             raw["month"] = raw["date"].dt.month
             self.macro_df_ = raw[["year", "month", "unemployment_rate"]].copy()
-            logger.info("MacroJoiner: fetched %d monthly UNRATE records from FRED",
+            print("MacroJoiner: fetched %d monthly UNRATE records from FRED",
                         len(self.macro_df_))
         except Exception as exc:
-            logger.warning("MacroJoiner: FRED fetch failed (%s). unemployment_rate will be NaN.", exc)
+            print("MacroJoiner: FRED fetch failed (%s). unemployment_rate will be NaN.", exc)
             self.macro_df_ = None
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         if self.macro_df_ is None:
             X = X.copy()
             X["unemployment_rate"] = np.nan
@@ -270,11 +266,11 @@ class MacroJoiner(BaseEstimator, TransformerMixin):
 
 class RareCategoryMerger(BaseEstimator, TransformerMixin):
 
-    def __init__(self, cols: list, threshold: int = 50):
+    def __init__(self, cols, threshold= 50):
         self.cols = cols
         self.threshold = threshold
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         self.rare_ = {}
         for col in self.cols:
             if col not in X.columns:
@@ -283,11 +279,11 @@ class RareCategoryMerger(BaseEstimator, TransformerMixin):
             rare = counts[counts < self.threshold].index.tolist()
             self.rare_[col] = rare
             if rare:
-                logger.info("RareCategoryMerger: col='%s' rare categories %s → 'other'",
+                print("RareCategoryMerger: col='%s' rare categories %s → 'other'",
                             col, rare)
         return self
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X):
         X = X.copy()
         for col, rare in self.rare_.items():
             if rare and col in X.columns:
@@ -301,12 +297,12 @@ class ColumnPreprocessor(BaseEstimator, TransformerMixin):
 
     def __init__(
         self,
-        skewed_cols: list,
-        binarize_cols: list,
-        ordinal_cols: list,
-        ordinal_categories: list,
-        ohe_cols: list,
-        target: str = TARGET,
+        skewed_cols,
+        binarize_cols,
+        ordinal_cols,
+        ordinal_categories,
+        ohe_cols,
+        target= TARGET,
     ):
         self.skewed_cols = skewed_cols
         self.binarize_cols = binarize_cols
@@ -315,7 +311,7 @@ class ColumnPreprocessor(BaseEstimator, TransformerMixin):
         self.ohe_cols = ohe_cols
         self.target = target
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X, y=None):
         skewed   = [c for c in self.skewed_cols   if c in X.columns]
         binarize = [c for c in self.binarize_cols  if c in X.columns]
         ordinal  = [c for c in self.ordinal_cols   if c in X.columns]
@@ -338,7 +334,7 @@ class ColumnPreprocessor(BaseEstimator, TransformerMixin):
         self.ordinal_  = ordinal
         self.ohe_      = ohe
 
-        logger.info(
+        print(
             "ColumnPreprocessor: skewed=%d  binarize=%d  normal=%d  ordinal=%d  ohe=%d",
             len(skewed), len(binarize), len(normal), len(ordinal), len(ohe),
         )
@@ -395,10 +391,10 @@ class ColumnPreprocessor(BaseEstimator, TransformerMixin):
         self.feature_names_out_ = self.ct_.get_feature_names_out().tolist()
         return self
 
-    def transform(self, X: pd.DataFrame) -> np.ndarray:
+    def transform(self, X):
         return self.ct_.transform(X)
 
-    def get_feature_names_out(self, input_features=None) -> list:
+    def get_feature_names_out(self, input_features=None):
         return self.feature_names_out_
 
 
@@ -429,16 +425,16 @@ def build_pipeline() -> Pipeline:
 
 # Training entry point
 
-def train(data_dir: str, artifact_dir: str) -> None:
+def train(data_dir, artifact_dir):
 
     os.makedirs(artifact_dir, exist_ok=True)
 
     # Load 
-    logger.info("Loading data from %s", data_dir)
+    print("Loading data from %s", data_dir)
     train_df = pd.read_csv(os.path.join(data_dir, "train.csv"), low_memory=False)
     val_df   = pd.read_csv(os.path.join(data_dir, "val.csv"),   low_memory=False)
     test_df  = pd.read_csv(os.path.join(data_dir, "test.csv"),  low_memory=False)
-    logger.info("Loaded — train %s  val %s  test %s",
+    print("Loaded — train %s  val %s  test %s",
                 train_df.shape, val_df.shape, test_df.shape)
 
     # Split features / target
@@ -450,15 +446,15 @@ def train(data_dir: str, artifact_dir: str) -> None:
     y_test  = test_df[TARGET].values.astype(int)
 
     # Build and fit pipeline
-    logger.info("Building and fitting preprocessing pipeline on train set")
+    print("Building and fitting preprocessing pipeline on train set")
     pipeline = build_pipeline()
     pipeline.fit(X_train)
 
     feature_names = pipeline.named_steps["preprocessor"].get_feature_names_out()
-    logger.info("Pipeline fitted — %d features output", len(feature_names))
+    print("Pipeline fitted — %d features output", len(feature_names))
 
     # Transform
-    logger.info("Transforming all splits")
+    print("Transforming all splits")
     Xt_train = pipeline.transform(X_train)
     Xt_val   = pipeline.transform(X_val)
     Xt_test  = pipeline.transform(X_test)
@@ -472,23 +468,23 @@ def train(data_dir: str, artifact_dir: str) -> None:
     df_test_out = pd.DataFrame(Xt_test, columns=feature_names)
     df_test_out[TARGET] = y_test
 
-    logger.info("train_features %s  val_features %s  test_features %s",
+    print("train_features %s  val_features %s  test_features %s",
                 df_train_out.shape, df_val_out.shape, df_test_out.shape)
-    logger.info("Class balance (train) — 0: %.1f%%  1: %.1f%%",
+    print("Class balance (train) — 0: %.1f%%  1: %.1f%%",
                 (y_train == 0).mean() * 100, (y_train == 1).mean() * 100)
 
     # Save CSVs
     df_train_out.to_csv(os.path.join(artifact_dir, "train_features.csv"), index=False)
     df_val_out.to_csv(  os.path.join(artifact_dir, "val_features.csv"),   index=False)
     df_test_out.to_csv( os.path.join(artifact_dir, "test_features.csv"),  index=False)
-    logger.info("Feature CSVs saved to %s", artifact_dir)
+    print("Feature CSVs saved to %s", artifact_dir)
 
     # Save pipeline artifact
     artifact_path = os.path.join(artifact_dir, "preprocessing_pipeline.pkl")
     with open(artifact_path, "wb") as fh:
         pickle.dump(pipeline, fh)
-    logger.info("Pipeline artifact saved → %s", artifact_path)
-    logger.info("Pipeline complete. Next: 07_model_training.py")
+    print("Pipeline artifact saved → %s", artifact_path)
+    print("Pipeline complete. Next: 07_model_training.py")
 
 
 

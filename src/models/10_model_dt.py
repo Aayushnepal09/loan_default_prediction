@@ -1,11 +1,9 @@
 """
-10_model_dt.py - Decision Tree (default parameters)
-
-Runs with default settings to get a pre-tuning baseline.
-
+Phase 2: Decision Tree
+This script uses Optuna to build a tuned Decision Tree classifier to capture non-linear interactions
+without heavily overfitting the training data.
 """
 
-import logging
 import os
 import time
 import warnings
@@ -17,12 +15,6 @@ from sklearn.tree import DecisionTreeClassifier
 
 warnings.filterwarnings("ignore")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 RANDOM_STATE = 42
@@ -38,7 +30,7 @@ def evaluate(y_true, y_score):
 
 
 def run(X_train, y_train, X_val, y_val):
-    logger.info("Training Decision Tree on %d rows", len(X_train))
+    print("Training Decision Tree on %d rows" % (len(X_train),))
 
     t0 = time.time()
     model = DecisionTreeClassifier(class_weight="balanced", random_state=RANDOM_STATE)
@@ -51,9 +43,9 @@ def run(X_train, y_train, X_val, y_val):
     y_score = np.asarray(proba)[:, 1]
     metrics = evaluate(y_val, y_score)
 
-    logger.info("Decision Tree | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time)
-    logger.info("depth=%d  leaves=%d", model.get_depth(), model.get_n_leaves())
+    print("Decision Tree | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time))
+    print("depth=%d  leaves=%d" % (model.get_depth(), model.get_n_leaves()))
 
     return {
         "model": "DecisionTree",

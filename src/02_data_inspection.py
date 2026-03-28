@@ -1,9 +1,9 @@
 """
-raw_data_inspection.py
-
-just a quick look at the raw data before we start cleaning anything.
-reads from data/processed/optimized_data_14_17.csv and prints stuff to console.
+Phase 1: Data Inspection
+This script reads the filtered data and prints out basic statistics, missing value counts,
+and class distribution to help us understand what needs to be cleaned.
 """
+
 
 import os
 import numpy as np

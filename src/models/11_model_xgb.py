@@ -1,11 +1,9 @@
 """
-11_model_xgb.py - XGBoost (default parameters)
-
-Pre-tuning baseline before Optuna search in 13_model_selection.py.
-
+Phase 2: XGBoost Model
+This script implements an advanced gradient-boosted tree (XGBoost). This is our primary model
+for achieving the highest predictive accuracy on the dataset.
 """
 
-import logging
 import os
 import time
 import warnings
@@ -16,12 +14,6 @@ from xgboost import XGBClassifier
 
 warnings.filterwarnings("ignore")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 TARGET = "charged_off"
 RANDOM_STATE = 42
@@ -38,8 +30,8 @@ def evaluate(y_true, y_score):
 
 def run(X_train, y_train, X_val, y_val):
     scale_pos_weight = float((y_train == 0).sum() / (y_train == 1).sum())
-    logger.info("Training XGBoost on %d rows  scale_pos_weight=%.2f",
-                len(X_train), scale_pos_weight)
+    print("Training XGBoost on %d rows  scale_pos_weight=%.2f" % (
+                len(X_train), scale_pos_weight))
 
     t0 = time.time()
     model = XGBClassifier(
@@ -55,8 +47,8 @@ def run(X_train, y_train, X_val, y_val):
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
 
-    logger.info("XGBoost | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time)
+    print("XGBoost | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time))
 
     return {
         "model": "XGBoost",

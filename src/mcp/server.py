@@ -1,3 +1,9 @@
+"""
+Phase 2: MCP Deployment Server
+This script wraps our trained XGBoost model in a Model Context Protocol (FastMCP) server,
+exposing a prediction tool that Claude Desktop can consume via natural language.
+"""
+
 import __main__
 import importlib.util
 import pickle
@@ -81,24 +87,24 @@ VALID_PURPOSES = {
 
 @mcp.tool()
 def predict_loan_default(
-    loan_amnt: float,
-    term: int,
-    int_rate: float,
-    sub_grade: str,
-    annual_inc: float,
-    dti: float,
-    fico_score: int,
-    home_ownership: str,
-    purpose: str,
-    open_acc: int = 10,
-    revol_util: float = 30.0,
-    total_acc: int = 20,
-    delinq_2yrs: int = 0,
-    pub_rec: int = 0,
-    inq_last_6mths: int = 0,
-    verification_status: str = "Not Verified",
-    earliest_cr_line: str = "2010-01",
-) -> dict:
+    loan_amnt,
+    term,
+    int_rate,
+    sub_grade,
+    annual_inc,
+    dti,
+    fico_score,
+    home_ownership,
+    purpose,
+    open_acc= 10,
+    revol_util= 30.0,
+    total_acc= 20,
+    delinq_2yrs= 0,
+    pub_rec= 0,
+    inq_last_6mths= 0,
+    verification_status= "Not Verified",
+    earliest_cr_line= "2010-01",
+):
 
     errors = []
 
