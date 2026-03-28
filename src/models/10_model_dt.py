@@ -30,7 +30,7 @@ def evaluate(y_true, y_score):
 
 
 def run(X_train, y_train, X_val, y_val):
-    print("Training Decision Tree on %d rows", len(X_train))
+    print("Training Decision Tree on %d rows" % (len(X_train),))
 
     t0 = time.time()
     model = DecisionTreeClassifier(class_weight="balanced", random_state=RANDOM_STATE)
@@ -43,9 +43,9 @@ def run(X_train, y_train, X_val, y_val):
     y_score = np.asarray(proba)[:, 1]
     metrics = evaluate(y_val, y_score)
 
-    print("Decision Tree | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time)
-    print("depth=%d  leaves=%d", model.get_depth(), model.get_n_leaves())
+    print("Decision Tree | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time))
+    print("depth=%d  leaves=%d" % (model.get_depth(), model.get_n_leaves()))
 
     return {
         "model": "DecisionTree",
