@@ -26,8 +26,9 @@ from sklearn.preprocessing import (
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Logging
-
-
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Module-level helpers 
 

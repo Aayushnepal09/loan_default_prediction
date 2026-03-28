@@ -91,7 +91,7 @@ def save_model_plots(result, y_val, figures_dir):
     path = out_dir / f"{name}_metrics_table.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print("Saved %s", path)
+    print("Saved %s" % (path,))
 
     # ROC curve
     fig, ax = plt.subplots(figsize=(5, 4))
@@ -106,7 +106,7 @@ def save_model_plots(result, y_val, figures_dir):
     path = out_dir / f"{name}_roc_curve.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    print("Saved %s", path)
+    print("Saved %s" % (path,))
 
     # Precision-Recall curve
     precision_vals, recall_vals, _ = precision_recall_curve(y_val, y_score)
@@ -123,7 +123,7 @@ def save_model_plots(result, y_val, figures_dir):
     path = out_dir / f"{name}_pr_curve.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    print("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def save_comparison_chart(results, figures_dir):
@@ -162,7 +162,7 @@ def save_comparison_chart(results, figures_dir):
     path = out_dir / "model_comparison.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
-    print("Saved %s", path)
+    print("Saved %s" % (path,))
 
 
 def run_logistic(X_train, y_train, X_val, y_val):
@@ -177,8 +177,8 @@ def run_logistic(X_train, y_train, X_val, y_val):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    print("LR | fit=%.1fs | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                fit_time, metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
+    print("LR | fit=%.1fs | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                fit_time, metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
 
     return {
         "model": "LogisticRegression",
@@ -195,7 +195,7 @@ def run_logistic(X_train, y_train, X_val, y_val):
 
 
 def run_optuna_dt(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
-    print("Decision Tree (Optuna, %d trials)", n_trials)
+    print("Decision Tree (Optuna, %d trials)" % (n_trials,))
 
     def objective(trial):
         params = {
@@ -224,9 +224,9 @@ def run_optuna_dt(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    print("DT best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    print("DT best params: %s", study.best_params)
+    print("DT best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("DT best params: %s" % (study.best_params,))
 
     return {
         "model": "DecisionTree",
@@ -244,7 +244,7 @@ def run_optuna_dt(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
 def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
     scale_pos_weight = float((y_train == 0).sum() / (y_train == 1).sum())
-    print("XGBoost (Optuna, %d trials)  scale_pos_weight=%.2f", n_trials, scale_pos_weight)
+    print("XGBoost (Optuna, %d trials)  scale_pos_weight=%.2f" % (n_trials, scale_pos_weight))
 
     def objective(trial):
         params = {
@@ -287,9 +287,9 @@ def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    print("XGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    print("XGB best params: %s", study.best_params)
+    print("XGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("XGB best params: %s" % (study.best_params,))
 
     return {
         "model": "XGBoost",
@@ -306,7 +306,7 @@ def run_optuna_xgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
 
 def run_optuna_hgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
-    print("HistGradientBoosting (Optuna, %d trials)", n_trials)
+    print("HistGradientBoosting (Optuna, %d trials)" % (n_trials,))
 
     def objective(trial):
         params = {
@@ -337,9 +337,9 @@ def run_optuna_hgb(X_train, y_train, X_val, y_val, n_trials=OPTUNA_TRIALS):
 
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
-    print("HGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"])
-    print("HGB best params: %s", study.best_params)
+    print("HGB best | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"]))
+    print("HGB best params: %s" % (study.best_params,))
 
     return {
         "model": "HistGradientBoosting",
@@ -360,14 +360,14 @@ def train(data_dir, artifact_dir):
 
     train_df = pd.read_csv(os.path.join(data_dir, "train_features.csv"))
     val_df = pd.read_csv(os.path.join(data_dir, "val_features.csv"))
-    print("Loaded train=%s  val=%s", train_df.shape, val_df.shape)
+    print("Loaded train=%s  val=%s" % (train_df.shape, val_df.shape))
 
     X_train = train_df.drop(columns=[TARGET]).values
     y_train = train_df[TARGET].values.astype(int)
     X_val = val_df.drop(columns=[TARGET]).values
     y_val = val_df[TARGET].values.astype(int)
-    print("Class balance (train) — 0: %.1f%%  1: %.1f%%",
-                (y_train == 0).mean() * 100, (y_train == 1).mean() * 100)
+    print("Class balance (train) — 0: %.1f%%  1: %.1f%%" % (
+                (y_train == 0).mean() * 100, (y_train == 1).mean() * 100))
 
     results = [
         run_logistic(X_train, y_train, X_val, y_val),
@@ -376,16 +376,16 @@ def train(data_dir, artifact_dir):
         run_optuna_hgb(X_train, y_train, X_val, y_val),
     ]
 
-    print("%-26s %-10s %-10s %-10s %-8s %-10s",
-                "Model", "Type", "AUC-ROC", "AUC-PR", "KS", "Time(s)")
+    print("%-26s %-10s %-10s %-10s %-8s %-10s" % (
+                "Model", "Type", "AUC-ROC", "AUC-PR", "KS", "Time(s)"))
     for r in results:
-        print("%-26s %-10s %-10.4f %-10.4f %-8.4f %-10.1f",
+        print("%-26s %-10s %-10.4f %-10.4f %-8.4f %-10.1f" % (
                     r["model"], r["type"],
-                    r["val_auc_roc"], r["val_auc_pr"], r["val_ks"], r["fit_time_s"])
+                    r["val_auc_roc"], r["val_auc_pr"], r["val_ks"], r["fit_time_s"]))
 
     tuned = [r for r in results if r["type"] == "tuned"]
     best = max(tuned, key=lambda r: r["val_auc_roc"])
-    print("Best model: %s  AUC-ROC=%.4f", best["model"], best["val_auc_roc"])
+    print("Best model: %s  AUC-ROC=%.4f" % (best["model"], best["val_auc_roc"]))
 
     # Save per-model figures and comparison chart
     for r in results:
@@ -396,7 +396,7 @@ def train(data_dir, artifact_dir):
     model_path = os.path.join(artifact_dir, "best_model.pkl")
     with open(model_path, "wb") as fh:
         pickle.dump(best["model_obj"], fh)
-    print("Best model saved -> %s", model_path)
+    print("Best model saved -> %s" % (model_path,))
 
     # Save results CSV
     results_df = pd.DataFrame([
@@ -412,7 +412,7 @@ def train(data_dir, artifact_dir):
     ])
     results_csv = os.path.join(artifact_dir, "model_results.csv")
     results_df.to_csv(results_csv, index=False)
-    print("Results saved -> %s", results_csv)
+    print("Results saved -> %s" % (results_csv,))
 
     # MLflow logging
     mlflow_uri = f"file:{os.path.join(artifact_dir, 'mlruns')}"

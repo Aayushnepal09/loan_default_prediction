@@ -29,7 +29,7 @@ def evaluate(y_true, y_score):
 
 
 def run(X_train, y_train, X_val, y_val):
-    print("Training Logistic Regression on %d rows", len(X_train))
+    print("Training Logistic Regression on %d rows" % (len(X_train),))
 
     t0 = time.time()
     model = LogisticRegression(
@@ -44,8 +44,8 @@ def run(X_train, y_train, X_val, y_val):
     y_score = model.predict_proba(X_val)[:, 1]
     metrics = evaluate(y_val, y_score)
 
-    print("Logistic Regression | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs",
-                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time)
+    print("Logistic Regression | AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f  fit=%.1fs" % (
+                metrics["auc_roc"], metrics["auc_pr"], metrics["ks"], fit_time))
 
     return {
         "model": "LogisticRegression",

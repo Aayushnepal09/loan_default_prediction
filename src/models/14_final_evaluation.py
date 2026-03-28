@@ -98,29 +98,29 @@ def evaluate(data_dir, artifact_dir):
     with open(model_path, "rb") as fh:
         model = pickle.load(fh)
     model_name = type(model).__name__
-    print("Loaded best model: %s", model_name)
+    print("Loaded best model: %s" % (model_name,))
 
     test_df = pd.read_csv(os.path.join(data_dir, "test_features.csv"))
-    print("Test set: %s", test_df.shape)
+    print("Test set: %s" % (test_df.shape,))
 
     X_test = test_df.drop(columns=[TARGET]).values
     y_test = test_df[TARGET].values.astype(int)
-    print("Class balance (test) — 0: %.1f%%  1: %.1f%%",
-                (y_test == 0).mean() * 100, (y_test == 1).mean() * 100)
+    print("Class balance (test) — 0: %.1f%%  1: %.1f%%" % (
+                (y_test == 0).mean() * 100, (y_test == 1).mean() * 100))
 
     y_score = model.predict_proba(X_test)[:, 1]
     proba = eval_proba(y_test, y_score)
     thresh = eval_at_youden(y_test, y_score)
 
-    print("FINAL TEST SET EVALUATION - %s", model_name)
-    print("AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f",
-                proba["auc_roc"], proba["auc_pr"], proba["ks"])
-    print("Youden threshold=%.4f | Accuracy=%.4f  Precision=%.4f  Recall=%.4f  F1=%.4f",
+    print("FINAL TEST SET EVALUATION - %s" % (model_name,))
+    print("AUC-ROC=%.4f  AUC-PR=%.4f  KS=%.4f" % (
+                proba["auc_roc"], proba["auc_pr"], proba["ks"]))
+    print("Youden threshold=%.4f | Accuracy=%.4f  Precision=%.4f  Recall=%.4f  F1=%.4f" % (
                 thresh["threshold"], thresh["accuracy"],
-                thresh["precision"], thresh["recall"], thresh["f1"])
+                thresh["precision"], thresh["recall"], thresh["f1"]))
     cm = thresh["confusion_matrix"]
-    print("Confusion matrix: TN=%d  FP=%d  FN=%d  TP=%d",
-                cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
+    print("Confusion matrix: TN=%d  FP=%d  FN=%d  TP=%d" % (
+                cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1]))
 
     mlflow_uri = f"file:{os.path.join(artifact_dir, 'mlruns')}"
     mlflow.set_tracking_uri(mlflow_uri)
@@ -146,12 +146,12 @@ def evaluate(data_dir, artifact_dir):
 
     plt.close(roc_fig)
     plt.close(cm_fig)
-    print("Logged to MLflow (%s)", mlflow_uri)
+    print("Logged to MLflow (%s)" % (mlflow_uri,))
 
 
 if __name__ == "__main__":
     root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
     DATA_DIR = os.getenv("DATA_DIR", os.path.join(root, "data", "processed"))
-    ARTIFACT_DIR = os.getenv("ARTIFACT_DIR", DATA_DIR)
+    ARTIFACT_DIR = os.getenv("ARTIFACT_DIR", os.path.join(root, "models"))
 
     evaluate(DATA_DIR, ARTIFACT_DIR)
