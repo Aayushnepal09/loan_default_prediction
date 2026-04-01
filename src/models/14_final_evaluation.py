@@ -8,6 +8,7 @@ to evaluate final, unbiased generalization accuracy.
 import os
 import pickle
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -154,4 +155,4 @@ if __name__ == "__main__":
     DATA_DIR = os.getenv("DATA_DIR", os.path.join(root, "data", "processed"))
     ARTIFACT_DIR = os.getenv("ARTIFACT_DIR", os.path.join(root, "models"))
 
-    evaluate(DATA_DIR, ARTIFACT_DIR)
+    evaluate(DATA_DIR, ARTIFACT_DIR) 
