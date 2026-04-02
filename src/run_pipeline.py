@@ -22,8 +22,8 @@ def run_script(script_path):
 
 def main():
     # Identify the project root and relevant directories
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    src_dir = os.path.join(root_dir, "src")
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(src_dir)
     models_script_dir = os.path.join(src_dir, "models")
     models_dir = os.path.join(root_dir, "models")
     
