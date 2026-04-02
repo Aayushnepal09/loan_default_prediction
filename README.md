@@ -65,11 +65,11 @@ Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`
 ## Running the Pipeline
 
 Run scripts in order:
-# i have created a new file run_pipeline.py that runs all the scripts in order you can run it using the following command:
+### i have created a new file run_pipeline.py that runs all the scripts in order you can run it using the following command:
 ```bash
 python run_pipeline.py
 ```
-# if you want to run the scripts manually, you can run the following commands:  
+## if you want to run the scripts manually, you can run the following commands:  
 ```bash
 python src/01_data_loading.py      # loads raw data, filters to 2014-2017
 python src/02_data_inspection.py   # prints a report about the raw data (optional)

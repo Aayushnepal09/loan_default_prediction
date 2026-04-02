@@ -245,7 +245,7 @@ class MacroJoiner(BaseEstimator, TransformerMixin):
     def transform(self, X):
         if self.macro_df_ is None:
             X = X.copy()
-            X["unemployment_rate"] = np.nan
+            X["unemployment_rate"] = 5.0  # Fallback to 5.0% so the column isn't dropped by SimpleImputer
             return X
 
         X = X.merge(
