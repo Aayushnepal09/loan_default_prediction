@@ -124,7 +124,7 @@ Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. Th
 | `01_bronze_layer.ipynb` | Bronze | Loads raw CSV as-is into Delta table `bronze_loans` |
 | `02_silver_layer.ipynb` | Silver | Cleans and type-fixes -> `silver_loans` |
 | `03_gold_layer.ipynb` | Gold | Time-based split + stratified sample -> `gold_loans_train/val/test` |
-| `04_mllib_models.ipynb` | Model | Trains logistic regression on Gold tables |
+| `04_mllib_models.ipynb` | Model | Trains LogisticRegression (baseline + 3-fold CV tuned), XGBoost, and HistGradientBoosting on the Gold tables and compares all three to Phase 2 |
 | `05_macro_integration.ipynb` | Task 2 | Adds FRED macro data, 3 insights, combined-features model |
 
 ### How to run in Databricks (Free Edition)
