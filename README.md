@@ -65,7 +65,7 @@ Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`
 ## Running the Pipeline
 
 Run scripts in order:
-### i have created a new file run_pipeline.py that runs all the scripts in order you can run it using the following command:
+### We have created a new file run_pipeline.py that runs all the scripts in order you can run it using the following command:
 ```bash
 python run_pipeline.py
 ```
