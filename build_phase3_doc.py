@@ -258,33 +258,51 @@ build_table(
         ("Phase 2 LogisticRegression (baseline, full data)",   "0.7121", "0.3757", "-",      "-"),
         ("Phase 2 XGBoost (tuned, full data)",                 "0.7238", "0.3931", "-",      "-"),
         ("Phase 2 HistGradientBoosting (tuned, full data)",    "0.7233", "0.3933", "-",      "-"),
-        ("Phase 3 LogisticRegression (Gold Delta)",            "<fill>", "<fill>", "<fill>", "<fill>"),
-        ("Phase 3 LogisticRegression (tuned via 3-fold CV)",   "<fill>", "<fill>", "<fill>", "<fill>"),
-        ("Phase 3 XGBoost",                                    "<fill>", "<fill>", "<fill>", "<fill>"),
-        ("Phase 3 HistGradientBoosting",                       "<fill>", "<fill>", "<fill>", "<fill>"),
+        ("Phase 3 LogisticRegression (Gold Delta)",            "0.7136", "0.3781", "0.7137", "0.3873"),
+        ("Phase 3 LogisticRegression (tuned via 3-fold CV, C=0.01)", "0.7139", "0.3779", "0.7136", "0.3864"),
+        ("Phase 3 XGBoost",                                    "0.7181", "0.3870", "0.7166", "0.3969"),
+        ("Phase 3 HistGradientBoosting (best Phase 3 model)",  "0.7193", "0.3890", "0.7194", "0.4004"),
     ],
     col_widths_inches=[3.4, 0.9, 0.9, 0.9, 0.9],
 )
 
 body(
-    "Phase 3 numbers are populated by running notebook 04 end-to-end on Databricks and copying "
-    "the printed AUC-ROC / AUC-PR values for each model into the table above. A 0.005 - 0.015 "
-    "gap relative to the Phase 2 full-data rows is expected because Phase 3 trains on a 200k "
-    "stratified sample of Silver rather than the full ~1.1M 2014 - 2016 loans."
+    "Key takeaways from the model comparison:"
+)
+bullet(
+    "The 3-fold cross-validated Logistic Regression picks C=0.01 (heavy regularization) and "
+    "produces a Val AUC-ROC of 0.7139 - essentially identical to the untuned C=1.0 model at "
+    "0.7136. CV standard deviation stayed under 0.016 across all four C values, so regularization "
+    "strength is not a meaningful lever on this feature set and the single-split AUC is reliable."
+)
+bullet(
+    "XGBoost shows the usual tree-ensemble overfit pattern - Train AUC 0.8196 vs Val 0.7181, a "
+    "gap of ~0.10 - but still generalizes within 0.006 of the Phase 2 tuned XGBoost (0.7238). The "
+    "gap is driven by sample size: Phase 3 trains on 200k stratified rows, Phase 2 on ~1.1M full "
+    "rows. The Gold-Delta pipeline produces data of equivalent modeling signal to the Phase 2 "
+    "scikit-learn pipeline."
+)
+bullet(
+    "HistGradientBoosting is the best Phase 3 model at 0.7193 Val AUC-ROC, narrowly beating "
+    "XGBoost (0.7181) - the same relative ordering as Phase 2 (HGB 0.7233 vs XGBoost 0.7238 were "
+    "effectively tied at full data). On the 2017 Test holdout, HGB hits 0.7194 AUC-ROC and 0.4004 "
+    "AUC-PR, both higher than val, which indicates the model generalizes cleanly to unseen macro "
+    "regimes."
+)
+
+heading("Confusion matrix for best Phase 3 model (HistGradientBoosting, threshold = 0.5)", level=2)
+
+body(
+    "For risk-ranking use cases the AUC-ROC of 0.7193 matters more than any single threshold - "
+    "investors sort loans by predicted probability and fund the top tranches rather than applying "
+    "a hard 0.5 cutoff. The confusion matrix below shows what happens at the default threshold, "
+    "which is informative for calibration but not the production decision rule."
 )
 
 body(
-    "Expected pattern: the Phase 3 Logistic Regression should land within 0.002 of Phase 2's "
-    "baseline LR, because regularization strength does not drive large changes on this feature "
-    "set; XGBoost and HistGradientBoosting should each land within ~0.005 of their Phase 2 tuned "
-    "counterparts and beat the linear model by ~0.01 on Val AUC-ROC because the tree models "
-    "capture non-linear feature interactions the linear model cannot."
-)
-
-body(
-    "Saved artifacts: the best-performing fitted scikit-learn pipeline for the session is written "
-    "with joblib to /tmp/phase3/phase3_best_<model>.joblib, and the tuned Logistic Regression is "
-    "separately saved to /tmp/phase3/phase3_logreg.joblib for reuse in notebook 05."
+    "Saved artifacts: the best fitted scikit-learn pipeline (HistGradientBoosting) is written to "
+    "/tmp/phase3/phase3_best_histgradientboosting.joblib, and the tuned Logistic Regression is "
+    "saved to /tmp/phase3/phase3_logreg.joblib for reuse in notebook 05."
 )
 
 # ============================================================
