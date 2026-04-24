@@ -112,3 +112,32 @@ Each script reads the output of the previous one so they have to be run in order
 **models/13_model_selection.py** - Runs multiple models with Optuna hyperparameter tuning, validates them against the validation set, logs results to MLflow, and saves the single best model.
 
 **models/14_final_evaluation.py** - Loads the best saved model and performs a final unbiased evaluation on the holdout 2017 test set, plotting the ROC curve and confusion matrix.
+
+---
+
+## Phase 3 - Databricks, Spark, and Delta Lake
+
+Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. The five notebooks live in `notebooks/databricks/`:
+
+| Notebook | Stage | What it does |
+|---|---|---|
+| `01_bronze_layer.ipynb` | Bronze | Loads raw CSV as-is into Delta table `bronze_loans` |
+| `02_silver_layer.ipynb` | Silver | Cleans and type-fixes -> `silver_loans` |
+| `03_gold_layer.ipynb` | Gold | Time-based split + stratified sample -> `gold_loans_train/val/test` |
+| `04_mllib_models.ipynb` | Model | Trains logistic regression on Gold tables |
+| `05_macro_integration.ipynb` | Task 2 | Adds FRED macro data, 3 insights, combined-features model |
+
+### How to run in Databricks (Free Edition)
+
+1. Create a Databricks account at https://community.cloud.databricks.com
+2. Run `python src/01_data_loading.py` locally first to produce `data/processed/optimized_data_14_17.csv`
+3. In Databricks: **Catalog -> Create -> Create Table -> Upload file** and drop in the CSV. This registers it as a managed Delta table at `workspace.default.optimized_data_14_17`
+4. In Databricks: **Workspace -> Users -> Import** each `.ipynb` from `notebooks/databricks/`
+5. Run them in order: 01 -> 02 -> 03 -> 04 -> 05
+6. Each notebook creates its Delta tables in `workspace.default`
+
+### Notes
+
+- Notebooks 01-03 are pure Spark + Delta Lake. Notebooks 04-05 pull the Gold tables into pandas and use scikit-learn for the model-fit step because Databricks Free Edition's serverless compute blocks several MLlib feature classes. The scalable data work still lives in Spark.
+- Test set (full 2017) is kept at full size for final metric comparison to Phase 2. Train/Val are stratified-sampled to 200k/50k.
+- FRED macro data (notebook 05) is fetched directly from https://fred.stlouisfed.org at runtime, no API key needed.
