@@ -226,13 +226,13 @@ heading("2. Spark MLlib Models", level=1)
 
 body(
     "Our Phase 2 best performers were Logistic Regression, XGBoost, and HistGradientBoosting. "
-    "For Phase 3 we re-implemented three of those model families - Logistic Regression, Random "
-    "Forest, and HistGradientBoosting - so we can see how different algorithm classes behave on "
-    "the Gold-Delta data. The Logistic Regression is additionally hyperparameter-tuned with "
-    "3-fold cross-validation (sweeping C over {0.01, 0.1, 1.0, 10.0}), which is the "
-    "scikit-learn equivalent of Spark MLlib's CrossValidator. All three models share the same "
-    "preprocessing pipeline - median imputation + standard scaling for numerics, "
-    "most-frequent imputation + one-hot encoding for categoricals - so the comparison is fair."
+    "For Phase 3 we re-implemented those same three Phase 2 model families on the Gold-Delta "
+    "data: Logistic Regression, XGBoost, and HistGradientBoosting. The Logistic Regression is "
+    "additionally hyperparameter-tuned with 3-fold cross-validation (sweeping C over {0.01, 0.1, "
+    "1.0, 10.0}), which is the scikit-learn equivalent of Spark MLlib's CrossValidator. All "
+    "three models share the same preprocessing pipeline - median imputation + standard scaling "
+    "for numerics, most-frequent imputation + one-hot encoding for categoricals - so the "
+    "comparison is fair."
 )
 
 body(
@@ -256,49 +256,35 @@ build_table(
     headers=["Phase / Model", "Val AUC-ROC", "Val AUC-PR", "Test AUC-ROC", "Test AUC-PR"],
     rows=[
         ("Phase 2 LogisticRegression (baseline, full data)",   "0.7121", "0.3757", "-",      "-"),
-        ("Phase 2 HistGradientBoosting (tuned, full data)",    "0.7233", "0.3933", "-",      "-"),
         ("Phase 2 XGBoost (tuned, full data)",                 "0.7238", "0.3931", "-",      "-"),
-        ("Phase 3 LogisticRegression (Gold Delta)",            "0.7136", "0.3781", "0.7137", "0.3873"),
-        ("Phase 3 LogisticRegression (tuned via 3-fold CV, C=0.01)", "0.7139", "0.3779", "0.7136", "0.3864"),
-        ("Phase 3 RandomForest",                               "0.7114", "0.3803", "0.7097", "0.3887"),
-        ("Phase 3 HistGradientBoosting (best Phase 3 model)",  "0.7193", "0.3890", "0.7194", "0.4004"),
+        ("Phase 2 HistGradientBoosting (tuned, full data)",    "0.7233", "0.3933", "-",      "-"),
+        ("Phase 3 LogisticRegression (Gold Delta)",            "<fill>", "<fill>", "<fill>", "<fill>"),
+        ("Phase 3 LogisticRegression (tuned via 3-fold CV)",   "<fill>", "<fill>", "<fill>", "<fill>"),
+        ("Phase 3 XGBoost",                                    "<fill>", "<fill>", "<fill>", "<fill>"),
+        ("Phase 3 HistGradientBoosting",                       "<fill>", "<fill>", "<fill>", "<fill>"),
     ],
     col_widths_inches=[3.4, 0.9, 0.9, 0.9, 0.9],
 )
 
 body(
-    "Key takeaways from the model comparison:"
-)
-bullet(
-    "The cross-validated Logistic Regression picks C=0.01 (heavy regularization) and produces a "
-    "Val AUC-ROC of 0.7139 - essentially identical to the untuned model with C=1.0. The "
-    "3-fold CV scores were stable across folds (std < 0.003), which tells us the Gold data is "
-    "well-behaved and the single-split AUC is reliable."
-)
-bullet(
-    "Random Forest shows a clear sign of overfitting: train AUC is 0.7575 but val AUC is only "
-    "0.7114. The class_weight='balanced' setting and max_depth=12 could be tuned further, but "
-    "the linear models already do about as well on this validation set."
-)
-bullet(
-    "HistGradientBoosting is the best Phase 3 model at 0.7193 Val AUC-ROC and beats the "
-    "Phase 3 LR by ~0.006. It sits slightly below the Phase 2 HGB (0.7233) because it trains "
-    "on a 200k stratified sample rather than the full 1.1M training loans."
-)
-
-heading("Confusion matrix for best Phase 3 model (HistGradientBoosting, threshold = 0.5)", level=2)
-
-body(
-    "For risk-ranking use cases the ROC AUC of 0.7193 matters more than any single threshold - "
-    "investors would sort loans by predicted probability and fund the top tranches rather than "
-    "apply a hard 0.5 cutoff. The confusion matrix below shows what happens at the default "
-    "threshold, which is informative for understanding calibration."
+    "Phase 3 numbers are populated by running notebook 04 end-to-end on Databricks and copying "
+    "the printed AUC-ROC / AUC-PR values for each model into the table above. A 0.005 - 0.015 "
+    "gap relative to the Phase 2 full-data rows is expected because Phase 3 trains on a 200k "
+    "stratified sample of Silver rather than the full ~1.1M 2014 - 2016 loans."
 )
 
 body(
-    "Saved artifacts: the best fitted scikit-learn pipeline (HistGradientBoosting) is written to "
-    "/tmp/phase3/phase3_best_histgradientboosting.joblib, and the tuned Logistic Regression is "
-    "saved to /tmp/phase3/phase3_logreg.joblib for reuse in notebook 05."
+    "Expected pattern: the Phase 3 Logistic Regression should land within 0.002 of Phase 2's "
+    "baseline LR, because regularization strength does not drive large changes on this feature "
+    "set; XGBoost and HistGradientBoosting should each land within ~0.005 of their Phase 2 tuned "
+    "counterparts and beat the linear model by ~0.01 on Val AUC-ROC because the tree models "
+    "capture non-linear feature interactions the linear model cannot."
+)
+
+body(
+    "Saved artifacts: the best-performing fitted scikit-learn pipeline for the session is written "
+    "with joblib to /tmp/phase3/phase3_best_<model>.joblib, and the tuned Logistic Regression is "
+    "separately saved to /tmp/phase3/phase3_logreg.joblib for reuse in notebook 05."
 )
 
 # ============================================================
