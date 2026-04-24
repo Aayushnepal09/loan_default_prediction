@@ -138,6 +138,6 @@ Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. Th
 
 ### Notes
 
-- Notebooks 01-03 are pure Spark + Delta Lake. Notebooks 04-05 pull the Gold tables into pandas and use scikit-learn for the model-fit step because Databricks Free Edition's serverless compute blocks several MLlib feature classes. The scalable data work still lives in Spark.
+- Notebooks 01-03 are pure Spark + Delta Lake. Notebooks 04-05 pull the Gold tables into pandas and use scikit-learn for the model-fit step because Databricks Free Edition's serverless compute blocks several MLlib feature classes (`Imputer`, `StringIndexer`, `OneHotEncoder`) via the Py4J security whitelist, and Free Edition does not expose classic compute as an alternative. The scalable data work still lives in Spark.
 - Test set (full 2017) is kept at full size for final metric comparison to Phase 2. Train/Val are stratified-sampled to 200k/50k.
 - FRED macro data (notebook 05) is fetched directly from https://fred.stlouisfed.org at runtime, no API key needed.
