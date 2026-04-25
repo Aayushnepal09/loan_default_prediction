@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 data/raw/
 data/processed/
+reports/
 EAS587_Phase1_Report.pdf
 EAS587 Phase1 Report.md
 model_training_design.md
