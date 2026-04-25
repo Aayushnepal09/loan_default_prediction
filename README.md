@@ -18,39 +18,50 @@ Some important choices we made:
 
 ```
 Eas587_project/
-├── data/
-│   ├── raw/                   # put archive.zip here
-│   └── processed/             # pipeline outputs go here
-├── models/                    # trained model artifacts (best_model.pkl, mlruns/, ...)
-├── reports/
-│   └── eda/
-│       └── eda_report.html    # EDA report (generated)
-├── notebooks/
-│   └── databricks/            # Phase 3 notebooks (Bronze, Silver, Gold, Models, Macro)
-├── src/
-│   ├── 01_data_loading.py
-│   ├── 02_data_inspection.py
-│   ├── 03_data_cleaning.py
-│   ├── 04_data_splitting.py
-│   ├── 05_data_eda.py
-│   ├── 06_data_processing_pipeline.py
-│   ├── mcp/
-│   │   ├── server.py
-│   │   └── README.md
-│   └── models/
-│       ├── 07_model_knn.py
-│       ├── 08_model_svm.py
-│       ├── 09_model_lr.py
-│       ├── 10_model_dt.py
-│       ├── 11_model_xgb.py
-│       ├── 12_model_hgb.py
-│       ├── 13_model_selection.py
-│       └── 14_final_evaluation.py
-├── run_pipeline.py            # runs all the src/ scripts in order
-├── mcp_config_template.json   # template referenced by src/mcp/README.md
+├── .gitignore
+├── README.md
 ├── requirements.txt
-└── README.md
+├── mcp_config_template.json              # template referenced by src/mcp/README.md
+├── data/
+│   ├── raw/                              # put archive.zip here (gitignored)
+│   │   └── LCDataDictionary.csv          # Lending Club column dictionary
+│   └── processed/                        # pipeline outputs (gitignored)
+│       └── .gitkeep
+├── models/
+│   ├── best_model.pkl                    # best model from 13_model_selection.py
+│   ├── trained_model.pkl                 # latest trained model
+│   ├── model_results.csv                 # per-model val/test metrics
+│   └── mlruns/                           # MLflow runs (gitignored)
+├── notebooks/
+│   └── databricks/                       # Phase 3 notebooks
+│       ├── 01_bronze_layer.ipynb
+│       ├── 02_silver_layer.ipynb
+│       ├── 03_gold_layer.ipynb
+│       ├── 04_mllib_models.ipynb
+│       └── 05_macro_integration.ipynb
+└── src/
+    ├── 01_data_loading.py
+    ├── 02_data_inspection.py
+    ├── 03_data_cleaning.py
+    ├── 04_data_splitting.py
+    ├── 05_data_eda.py                    # writes HTML report to reports/eda/ at runtime
+    ├── 06_data_processing_pipeline.py
+    ├── run_pipeline.py                   # runs all the src/ scripts in order
+    ├── mcp/
+    │   ├── server.py
+    │   └── README.md
+    └── models/
+        ├── 07_model_knn.py
+        ├── 08_model_svm.py
+        ├── 09_model_lr.py
+        ├── 10_model_dt.py
+        ├── 11_model_xgb.py
+        ├── 12_model_hgb.py
+        ├── 13_model_selection.py
+        └── 14_final_evaluation.py
 ```
+
+> Generated outputs (`reports/`, `data/raw/`, `data/processed/`, `models/mlruns/`) are not tracked in git — they appear after running the pipeline locally.
 
 ### MCP Server Deployment
 This repository includes a fully functioning Model Context Protocol (MCP) server that exposes the trained loan default model to AI assistants like Claude Desktop.
@@ -70,9 +81,9 @@ Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`
 ## Running the Pipeline
 
 Run scripts in order:
-### We have created a new file run_pipeline.py that runs all the scripts in order you can run it using the following command:
+### We have created a new file src/run_pipeline.py that runs all the scripts in order you can run it using the following command:
 ```bash
-python run_pipeline.py
+python src/run_pipeline.py
 ```
 ## if you want to run the scripts manually, you can run the following commands:  
 ```bash
