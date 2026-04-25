@@ -21,9 +21,12 @@ Eas587_project/
 ├── data/
 │   ├── raw/                   # put archive.zip here
 │   └── processed/             # pipeline outputs go here
+├── models/                    # trained model artifacts (best_model.pkl, mlruns/, ...)
 ├── reports/
 │   └── eda/
 │       └── eda_report.html    # EDA report (generated)
+├── notebooks/
+│   └── databricks/            # Phase 3 notebooks (Bronze, Silver, Gold, Models, Macro)
 ├── src/
 │   ├── 01_data_loading.py
 │   ├── 02_data_inspection.py
@@ -43,6 +46,8 @@ Eas587_project/
 │       ├── 12_model_hgb.py
 │       ├── 13_model_selection.py
 │       └── 14_final_evaluation.py
+├── run_pipeline.py            # runs all the src/ scripts in order
+├── mcp_config_template.json   # template referenced by src/mcp/README.md
 ├── requirements.txt
 └── README.md
 ```
@@ -60,7 +65,7 @@ Need Python 3.10+ and these packages:
 pip install -r requirements.txt
 ```
 
-Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`.
+Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`. (This is only needed for the local Phase 1-2 pipeline below; the Phase 3 Databricks notebook downloads the dataset itself via the Kaggle API.)
 
 ## Running the Pipeline
 
@@ -121,7 +126,7 @@ Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. Th
 
 | Notebook | Stage | What it does |
 |---|---|---|
-| `01_bronze_layer.ipynb` | Bronze | Loads raw CSV as-is into Delta table `bronze_loans` |
+| `01_bronze_layer.ipynb` | Bronze | Downloads the Kaggle dataset, filters to 2014-2017, writes to the Unity Catalog volume, and loads as-is into Delta table `bronze_loans` |
 | `02_silver_layer.ipynb` | Silver | Cleans and type-fixes -> `silver_loans` |
 | `03_gold_layer.ipynb` | Gold | Time-based split + stratified sample -> `gold_loans_train/val/test` |
 | `04_mllib_models.ipynb` | Model | Trains LogisticRegression (baseline + 3-fold CV tuned), XGBoost, and HistGradientBoosting on the Gold tables and compares all three to Phase 2 |
