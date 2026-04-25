@@ -130,11 +130,11 @@ Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. Th
 ### How to run in Databricks (Free Edition)
 
 1. Create a Databricks account at https://community.cloud.databricks.com
-2. Run `python src/01_data_loading.py` locally first to produce `data/processed/optimized_data_14_17.csv`
-3. In Databricks: **Catalog -> Create -> Create Table -> Upload file** and drop in the CSV. This registers it as a managed Delta table at `workspace.default.optimized_data_14_17`
-4. In Databricks: **Workspace -> Users -> Import** each `.ipynb` from `notebooks/databricks/`
-5. Run them in order: 01 -> 02 -> 03 -> 04 -> 05
-6. Each notebook creates its Delta tables in `workspace.default`
+2. In Databricks, create a Unity Catalog volume named `raw_data` under `workspace.default` so the path `/Volumes/workspace/default/raw_data/` exists.
+3. In Databricks: **Workspace -> Users -> Import** each `.ipynb` from `notebooks/databricks/`
+4. Run them in order: 01 -> 02 -> 03 -> 04 -> 05
+5. Notebook 01 downloads the Lending Club Kaggle dataset automatically, filters 2014-2017 data, writes `/Volumes/workspace/default/raw_data/optimized_data_14_17.csv`, and creates `workspace.default.bronze_loans`.
+6. The remaining notebooks create their Delta tables in `workspace.default`
 
 ### Notes
 
