@@ -18,50 +18,34 @@ Some important choices we made:
 
 ```
 Eas587_project/
-├── .gitignore
-├── README.md
-├── requirements.txt
-├── mcp_config_template.json              # template referenced by src/mcp/README.md
 ├── data/
-│   ├── raw/                              # put archive.zip here (gitignored)
-│   │   └── LCDataDictionary.csv          # Lending Club column dictionary
-│   └── processed/                        # pipeline outputs (gitignored)
-│       └── .gitkeep
-├── models/
-│   ├── best_model.pkl                    # best model from 13_model_selection.py
-│   ├── trained_model.pkl                 # latest trained model
-│   ├── model_results.csv                 # per-model val/test metrics
-│   └── mlruns/                           # MLflow runs (gitignored)
-├── notebooks/
-│   └── databricks/                       # Phase 3 notebooks
-│       ├── 01_bronze_layer.ipynb
-│       ├── 02_silver_layer.ipynb
-│       ├── 03_gold_layer.ipynb
-│       ├── 04_mllib_models.ipynb
-│       └── 05_macro_integration.ipynb
-└── src/
-    ├── 01_data_loading.py
-    ├── 02_data_inspection.py
-    ├── 03_data_cleaning.py
-    ├── 04_data_splitting.py
-    ├── 05_data_eda.py                    # writes HTML report to reports/eda/ at runtime
-    ├── 06_data_processing_pipeline.py
-    ├── run_pipeline.py                   # runs all the src/ scripts in order
-    ├── mcp/
-    │   ├── server.py
-    │   └── README.md
-    └── models/
-        ├── 07_model_knn.py
-        ├── 08_model_svm.py
-        ├── 09_model_lr.py
-        ├── 10_model_dt.py
-        ├── 11_model_xgb.py
-        ├── 12_model_hgb.py
-        ├── 13_model_selection.py
-        └── 14_final_evaluation.py
+│   ├── raw/                   # put archive.zip here
+│   └── processed/             # pipeline outputs go here
+├── reports/
+│   └── eda/
+│       └── eda_report.html    # EDA report (generated)
+├── src/
+│   ├── 01_data_loading.py
+│   ├── 02_data_inspection.py
+│   ├── 03_data_cleaning.py
+│   ├── 04_data_splitting.py
+│   ├── 05_data_eda.py
+│   ├── 06_data_processing_pipeline.py
+│   ├── mcp/
+│   │   ├── server.py
+│   │   └── README.md
+│   └── models/
+│       ├── 07_model_knn.py
+│       ├── 08_model_svm.py
+│       ├── 09_model_lr.py
+│       ├── 10_model_dt.py
+│       ├── 11_model_xgb.py
+│       ├── 12_model_hgb.py
+│       ├── 13_model_selection.py
+│       └── 14_final_evaluation.py
+├── requirements.txt
+└── README.md
 ```
-
-> Generated outputs (`reports/`, `data/raw/`, `data/processed/`, `models/mlruns/`) are not tracked in git — they appear after running the pipeline locally.
 
 ### MCP Server Deployment
 This repository includes a fully functioning Model Context Protocol (MCP) server that exposes the trained loan default model to AI assistants like Claude Desktop.
@@ -76,14 +60,14 @@ Need Python 3.10+ and these packages:
 pip install -r requirements.txt
 ```
 
-Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`. (This is only needed for the local Phase 1-2 pipeline below; the Phase 3 Databricks notebook downloads the dataset itself via the Kaggle API.)
+Then download `archive.zip` from the Kaggle link above and put it in `data/raw/`.
 
 ## Running the Pipeline
 
 Run scripts in order:
-### We have created a new file src/run_pipeline.py that runs all the scripts in order you can run it using the following command:
+### i have created a new file run_pipeline.py that runs all the scripts in order you can run it using the following command:
 ```bash
-python src/run_pipeline.py
+python run_pipeline.py
 ```
 ## if you want to run the scripts manually, you can run the following commands:  
 ```bash
@@ -137,7 +121,7 @@ Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. Th
 
 | Notebook | Stage | What it does |
 |---|---|---|
-| `01_bronze_layer.ipynb` | Bronze | Downloads the Kaggle dataset, filters to 2014-2017, writes to the Unity Catalog volume, and loads as-is into Delta table `bronze_loans` |
+| `01_bronze_layer.ipynb` | Bronze | Loads raw CSV as-is into Delta table `bronze_loans` |
 | `02_silver_layer.ipynb` | Silver | Cleans and type-fixes -> `silver_loans` |
 | `03_gold_layer.ipynb` | Gold | Time-based split + stratified sample -> `gold_loans_train/val/test` |
 | `04_mllib_models.ipynb` | Model | Trains LogisticRegression (baseline + 3-fold CV tuned), XGBoost, and HistGradientBoosting on the Gold tables and compares all three to Phase 2 |
@@ -146,11 +130,11 @@ Phase 3 rebuilds the pipeline on Databricks using the Medallion architecture. Th
 ### How to run in Databricks (Free Edition)
 
 1. Create a Databricks account at https://community.cloud.databricks.com
-2. In Databricks, create a Unity Catalog volume named `raw_data` under `workspace.default` so the path `/Volumes/workspace/default/raw_data/` exists.
-3. In Databricks: **Workspace -> Users -> Import** each `.ipynb` from `notebooks/databricks/`
-4. Run them in order: 01 -> 02 -> 03 -> 04 -> 05
-5. Notebook 01 downloads the Lending Club Kaggle dataset automatically, filters 2014-2017 data, writes `/Volumes/workspace/default/raw_data/optimized_data_14_17.csv`, and creates `workspace.default.bronze_loans`.
-6. The remaining notebooks create their Delta tables in `workspace.default`
+2. Run `python src/01_data_loading.py` locally first to produce `data/processed/optimized_data_14_17.csv`
+3. In Databricks: **Catalog -> Create -> Create Table -> Upload file** and drop in the CSV. This registers it as a managed Delta table at `workspace.default.optimized_data_14_17`
+4. In Databricks: **Workspace -> Users -> Import** each `.ipynb` from `notebooks/databricks/`
+5. Run them in order: 01 -> 02 -> 03 -> 04 -> 05
+6. Each notebook creates its Delta tables in `workspace.default`
 
 ### Notes
 
