@@ -876,7 +876,7 @@ with st.sidebar:
     st.caption(f"Active theme: _{st.session_state['theme_name']}_")
 
     st.markdown("---")
-    st.markdown("**Team**")
+    st.markdown("**Team: 404 Team Not Found**")
     st.markdown(
         "- Aayush Nepal\n"
         "- Junwei Zhang\n"
@@ -1026,6 +1026,10 @@ with tabs[0]:
                       margin-bottom:1.4rem;">
             Same use case, four implementations:
             pandas &rarr; scikit-learn &rarr; Spark + MCP &rarr; conversational UI
+          </div>
+          <div style="font-size:0.78rem; color:var(--t-accent); font-weight:700;
+                      letter-spacing:0.18em; margin-bottom:0.35rem;">
+            TEAM &middot; 404 TEAM NOT FOUND
           </div>
           <div style="font-size:1.05rem; color:var(--t-hero-text); letter-spacing:0.02em;">
             <strong>Aayush Nepal</strong>
@@ -1792,8 +1796,12 @@ with tabs[8]:
                       margin-top:0.6rem; letter-spacing:0.04em;">
             Questions?
           </div>
+          <div style="font-size:0.78rem; color:var(--t-accent); font-weight:700;
+                      letter-spacing:0.2em; margin-top:1.4rem;">
+            404 TEAM NOT FOUND
+          </div>
           <div style="font-size:0.95rem; color:var(--t-hero-sub); font-style:italic;
-                      margin-top:1.2rem;">
+                      margin-top:0.4rem;">
             Aayush Nepal  &middot;  Junwei Zhang  &middot;  Lusi Zhang
           </div>
         </div>

@@ -1,7 +1,7 @@
 # Phase 4 Speaker Plan
 
 **Course:** EAS 587 — Spring 2026
-**Team:** Aayush Nepal · Junwei Zhang · Lusi Zhang
+**Team:** 404 Team Not Found  ·  Aayush Nepal · Junwei Zhang · Lusi Zhang
 **Format:** 15-minute live presentation driven entirely from the Streamlit app
 (`streamlit run src/app/streamlit_app.py`). The 9 tabs are the slides.
 
