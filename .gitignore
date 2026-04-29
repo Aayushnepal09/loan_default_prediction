@@ -13,3 +13,7 @@ model_training_design.md
 pipeline_report.md
 models/mlruns
 .claude/
+
+# Phase 4 - intermediate capture artifacts and Office lock files
+presentation/screenshots/
+~$*
