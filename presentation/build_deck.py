@@ -190,8 +190,11 @@ def build_title(prs):
              "Same use case, four implementations:\npandas  ->  scikit-learn  ->  Spark + MCP  ->  conversational UI",
              size=20, color=RGBColor(0xCA, 0xDC, 0xFC), italic=True)
 
-    add_text(s, 0.9, 6.4, 12, 0.4,
-             "Team  -  Aayush Nepal  |  Junwei Zhang  |  Lusi Zhang",
+    add_text(s, 0.9, 6.2, 12, 0.35,
+             "Team  -  404 Team Not Found",
+             size=13, color=AMBER, bold=True)
+    add_text(s, 0.9, 6.55, 12, 0.4,
+             "Aayush Nepal  |  Junwei Zhang  |  Lusi Zhang",
              size=14, color=WHITE)
     add_text(s, 0.9, 6.8, 12, 0.3,
              "Final presentations: week of May 4, 2026",
@@ -696,6 +699,9 @@ def build_close(prs):
              "Thank you", size=58, bold=True, color=WHITE)
     add_text(s, 0.9, 2.95, 12, 0.7,
              "Questions?", size=30, color=AMBER)
+    add_text(s, 0.9, 3.7, 12, 0.4,
+             "404 Team Not Found  -  Aayush Nepal | Junwei Zhang | Lusi Zhang",
+             size=13, color=WHITE, italic=True)
 
     # Three takeaway cards on dark
     takeaways = [
