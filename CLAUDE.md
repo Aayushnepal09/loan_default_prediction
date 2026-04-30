@@ -62,6 +62,6 @@ See `src/mcp/README.md` for the `claude_desktop_config.json` entry; the template
 
 ## Conventions
 
-- Generated artifacts (`data/raw/`, `data/processed/`, `reports/`, `models/mlruns/`) are gitignored. Don't commit pipeline outputs; only the curated artifacts in `models/` (`best_model.pkl`, `trained_model.pkl`, `model_results.csv`) and `data/raw/LCDataDictionary.csv` are tracked.
+- Generated artifacts (`data/raw/`, `data/processed/`, `reports/`, `models/mlruns/`) are gitignored. Don't commit pipeline outputs; only the curated artifacts in `models/` (`best_model.pkl`, `model_results.csv`) and `data/raw/LCDataDictionary.csv` are tracked.
 - Numeric prefixes in `src/` (`01_…` … `14_…`) encode pipeline order. Keep new pipeline stages in this scheme; helper modules go in subpackages like `src/mcp/`.
 - This is a school project — strip the default `Co-Authored-By: Claude` trailer from any commits you make.
