@@ -179,7 +179,7 @@ def main():
         for i, name in enumerate(TAB_NAMES, start=1):
             shot = SHOTS_DIR / f"slide_{i:02d}_{name.replace(' ', '_').replace('+', 'plus').replace(':', '').replace('?', '').replace('&', 'and')}.png"
             try:
-                capture_tab(page, name, shot)
+                capture_tab(page, name, shot, args.width)
                 shot_paths.append(shot)
             except Exception as exc:
                 print(f"    FAILED on '{name}': {exc}", file=sys.stderr)

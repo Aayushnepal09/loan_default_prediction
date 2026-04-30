@@ -651,7 +651,7 @@ THEMES = {
         "is_dark":         True,
     },
 }
-DEFAULT_THEME = "Edge Sunset"
+DEFAULT_THEME = "Stripe Sunset"
 THEME_FILE = ROOT / ".streamlit" / "active_theme.txt"
 
 
@@ -899,95 +899,6 @@ with st.sidebar:
 # -----------------------------------------------------------------------------
 # Tabs
 # -----------------------------------------------------------------------------
-# Inline theme picker above the tabs (visible regardless of sidebar state).
-_pick_col, _pick_label_col, _ = st.columns([1.4, 4.6, 2])
-with _pick_col:
-    _theme_options = list(THEMES.keys())
-    _chosen_top = st.selectbox(
-        "Theme",
-        _theme_options,
-        index=_theme_options.index(st.session_state["theme_name"]),
-        key="_theme_picker_top",
-        help="Pick a base theme. Then customize individual colors below.",
-    )
-    if _chosen_top != st.session_state["theme_name"]:
-        # Switching theme wipes any custom color overrides + resets pickers
-        st.session_state["theme_name"] = _chosen_top
-        st.session_state.pop("custom_overrides", None)
-        for _k in THEME_COLOR_KEYS:
-            st.session_state.pop(f"cp_{_k}", None)
-        save_theme_choice(_chosen_top)
-        st.rerun()
-with _pick_label_col:
-    st.markdown(
-        f"<div style='padding-top:1.85rem; color:var(--t-muted); font-style:italic; font-size:0.9rem;'>"
-        f"&laquo; {THEME['tagline']} &raquo;"
-        + (" &middot; <b style='color:var(--t-accent);'>customized</b>"
-           if st.session_state.get("custom_overrides") else "")
-        + "</div>",
-        unsafe_allow_html=True,
-    )
-
-# Customize-this-theme panel (collapsed by default).
-with st.expander("Customize this theme  -  tweak colors live, copy JSON to share with the team"):
-    st.caption(
-        "Each color picker is a full hex / RGB / HSL chooser - drag the gradient, "
-        "type a hex code, or paste from your favorite palette tool. Changes apply live."
-    )
-
-    _color_labels = {
-        "primary": "Primary",
-        "accent": "Accent",
-        "bg": "Page background",
-        "surface": "Surface (cards)",
-        "surface_2": "Surface 2 (active tab)",
-        "text": "Body text",
-        "muted": "Muted text",
-        "border": "Borders",
-        "hero_a": "Hero gradient A",
-        "hero_b": "Hero gradient B",
-        "hero_text": "Hero text",
-        "hero_subtitle": "Hero subtitle",
-    }
-    _cp_cols = st.columns(4)
-    _new_overrides = dict(st.session_state.get("custom_overrides", {}))
-    for _i, _k in enumerate(THEME_COLOR_KEYS):
-        with _cp_cols[_i % 4]:
-            _new_val = st.color_picker(
-                _color_labels[_k],
-                THEME[_k],
-                key=f"cp_{_k}",
-            )
-            if _new_val.lower() != _base[_k].lower():
-                _new_overrides[_k] = _new_val
-            else:
-                _new_overrides.pop(_k, None)
-
-    # Trigger a rerun if the user moved any picker since last render
-    if _new_overrides != st.session_state.get("custom_overrides", {}):
-        st.session_state["custom_overrides"] = _new_overrides
-        st.rerun()
-
-    _btn_col, _spacer = st.columns([1, 5])
-    with _btn_col:
-        if st.button("Reset to preset", use_container_width=True):
-            st.session_state.pop("custom_overrides", None)
-            for _k in THEME_COLOR_KEYS:
-                st.session_state.pop(f"cp_{_k}", None)
-            st.rerun()
-
-    st.markdown("**Current theme as JSON**  -  paste this back to me to lock it in")
-    import json as _json
-    st.code(
-        _json.dumps({
-            "name": st.session_state["theme_name"]
-                    + (" (customized)" if st.session_state.get("custom_overrides") else ""),
-            **{k: THEME[k] for k in THEME_COLOR_KEYS},
-            "is_dark": THEME.get("is_dark", False),
-        }, indent=2),
-        language="json",
-    )
-
 tabs = st.tabs([
     "Welcome",
     "Phase 1: Data",
