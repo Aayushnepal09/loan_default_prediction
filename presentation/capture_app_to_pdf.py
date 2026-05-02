@@ -99,14 +99,20 @@ def expand_viewport_for_content(page):
     page.wait_for_timeout(700)
 
 
-def capture_tab(page, tab_name, out_path, base_width):
-    """Click a tab by its label, wait for content to settle, screenshot."""
+def capture_tab(page, tab_index, tab_name, out_path, base_width):
+    """Click the tab at position `tab_index` (0-based) in the tab list and
+    screenshot it. Index-based is more reliable than text-match because
+    Streamlit's [data-baseweb=tab] elements include both buttons and panels.
+    """
     print(f"  - {tab_name}")
-    # Reset viewport to nominal so the tab strip renders correctly first
+    # Reset viewport so the tab strip renders correctly first
     page.set_viewport_size({"width": base_width, "height": 900})
+    page.wait_for_timeout(400)
+    page.evaluate("window.scrollTo(0, 0)")
+    page.wait_for_timeout(300)
 
-    tab = page.locator('[data-baseweb="tab"]').filter(has_text=tab_name).first
-    tab.click(timeout=10000)
+    tab = page.get_by_role("tab").nth(tab_index)
+    tab.click(timeout=15000)
     # Allow plotly + images to render
     page.wait_for_timeout(2000)
 
@@ -179,7 +185,7 @@ def main():
         for i, name in enumerate(TAB_NAMES, start=1):
             shot = SHOTS_DIR / f"slide_{i:02d}_{name.replace(' ', '_').replace('+', 'plus').replace(':', '').replace('?', '').replace('&', 'and')}.png"
             try:
-                capture_tab(page, name, shot, args.width)
+                capture_tab(page, i - 1, name, shot, args.width)
                 shot_paths.append(shot)
             except Exception as exc:
                 print(f"    FAILED on '{name}': {exc}", file=sys.stderr)
