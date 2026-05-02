@@ -1326,41 +1326,113 @@ with tabs[5]:
         st.markdown("##### Live demo prompts (paste into Claude Desktop)")
         st.caption(
             "These are the exact prompts to copy-paste during the live demo. "
-            "Each one demonstrates a different MCP capability."
+            "Each one demonstrates a different MCP capability. Hover any "
+            "code block for the copy button."
         )
 
-        st.markdown("**1. Basic prediction**")
-        st.caption("One loan, one tool call, one risk recommendation.")
-        st.code(
-            "Predict default risk for a $12,000, 36-month loan at 11.5% "
-            "interest. Sub-grade B2, $58,000 income, DTI 15%, FICO 720, "
-            "renting, debt consolidation.",
-            language=None,
+        # Per-tab styling for the prompt cards. Scoped here so it doesn't
+        # bleed into other tabs.
+        st.markdown(
+            """
+            <style>
+              .dp-card {
+                  display: flex; gap: 14px; align-items: flex-start;
+                  padding: 14px 16px 6px 16px; margin: 10px 0 0 0;
+                  border-radius: 14px; border: 1px solid var(--t-border);
+                  background: var(--t-surface);
+                  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+              }
+              .dp-card-key {
+                  border: 2px solid var(--t-accent);
+                  background: linear-gradient(135deg,
+                      color-mix(in srgb, var(--t-accent) 8%, var(--t-surface)) 0%,
+                      var(--t-surface) 70%);
+                  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+              }
+              .dp-num {
+                  flex-shrink: 0;
+                  width: 36px; height: 36px; border-radius: 50%;
+                  background: linear-gradient(135deg,
+                      var(--t-hero-a) 0%, var(--t-hero-b) 100%);
+                  color: white; display: inline-flex;
+                  align-items: center; justify-content: center;
+                  font-weight: 700; font-size: 1rem; line-height: 1;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+              }
+              .dp-text {
+                  flex: 1; min-width: 0;
+              }
+              .dp-title {
+                  font-weight: 700; color: var(--t-primary);
+                  font-size: 1.0rem; line-height: 1.2;
+                  margin-bottom: 2px;
+              }
+              .dp-caption {
+                  color: var(--t-muted); font-size: 0.82rem;
+                  font-style: italic;
+              }
+              .dp-key-badge {
+                  display: inline-block; margin-left: 8px;
+                  background: var(--t-accent); color: white;
+                  font-size: 0.65rem; font-weight: 700;
+                  letter-spacing: 0.08em; padding: 2px 8px;
+                  border-radius: 999px; vertical-align: middle;
+              }
+              /* Slim the code block inside the card */
+              .dp-code-wrap [data-testid="stCodeBlock"] {
+                  margin: 6px 0 4px 0;
+              }
+              .dp-code-wrap pre {
+                  border-left: 3px solid var(--t-accent) !important;
+              }
+            </style>
+            """,
+            unsafe_allow_html=True,
         )
 
-        st.markdown("**2. Multi-turn what-if (the wow moment)**")
-        st.caption("Claude runs 4-5 variations through the tool autonomously.")
-        st.code(
-            "How can I get it approved?",
-            language=None,
-        )
+        prompts = [
+            ("1", "Basic prediction",
+             "One loan, one tool call, one risk recommendation.",
+             "Predict default risk for a $12,000, 36-month loan at 11.5% "
+             "interest. Sub-grade B2, $58,000 income, DTI 15%, FICO 720, "
+             "renting, debt consolidation.",
+             False),
+            ("2", "Multi-turn what-if",
+             "Claude runs 4-5 variations through the tool autonomously.",
+             "How can I get it approved?",
+             True),  # the wow moment - extra visual weight
+            ("3", "Side-by-side comparison",
+             "Claude calls the tool twice and reasons about the contrast.",
+             "Compare two loans: (1) $5,000 at 7%, A1 grade, FICO 780, "
+             "$90K income vs (2) $25,000 at 22%, E4 grade, FICO 620, $35K "
+             "income. Which is riskier and why?",
+             False),
+            ("4", "Targeted what-if",
+             "Iterative tuning toward a target outcome.",
+             "What FICO score would this same borrower need to drop "
+             "below 20% default probability?",
+             False),
+        ]
 
-        st.markdown("**3. Side-by-side comparison**")
-        st.caption("Claude calls the tool twice and reasons about the contrast.")
-        st.code(
-            "Compare two loans: (1) $5,000 at 7%, A1 grade, FICO 780, "
-            "$90K income vs (2) $25,000 at 22%, E4 grade, FICO 620, $35K "
-            "income. Which is riskier and why?",
-            language=None,
-        )
-
-        st.markdown("**4. Targeted what-if**")
-        st.caption("Iterative tuning toward a target outcome.")
-        st.code(
-            "What FICO score would this same borrower need to drop "
-            "below 20% default probability?",
-            language=None,
-        )
+        for num, title, caption, prompt_text, is_key in prompts:
+            badge = ('<span class="dp-key-badge">KEY MOMENT</span>'
+                     if is_key else "")
+            extra = " dp-card-key" if is_key else ""
+            st.markdown(
+                f"""
+                <div class="dp-card{extra}">
+                  <div class="dp-num">{num}</div>
+                  <div class="dp-text">
+                    <div class="dp-title">{title}{badge}</div>
+                    <div class="dp-caption">{caption}</div>
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div class="dp-code-wrap">', unsafe_allow_html=True)
+            st.code(prompt_text, language=None)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 # === TAB 7: Predictor (the live demo) ========================================
