@@ -1329,35 +1329,55 @@ with tabs[5]:
             "Each one demonstrates a different MCP capability."
         )
 
-        # Restyle ONLY the prompt code blocks within this column so they read
-        # as quoted user-prompts rather than generic code dumps.
+        # Themed prompt boxes - the box IS the visual change, headers stay simple
         st.markdown(
             """
             <style>
-              .demo-prompt [data-testid="stCodeBlock"] pre {
-                  background: var(--t-surface) !important;
-                  border-left: 4px solid var(--t-accent) !important;
-                  border-radius: 8px !important;
-                  padding: 14px 16px !important;
-                  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+              .demo-prompt-box {
+                  background: linear-gradient(135deg,
+                      color-mix(in srgb, var(--t-accent) 6%, var(--t-surface)) 0%,
+                      var(--t-surface) 90%);
+                  border-left: 4px solid var(--t-accent);
+                  border-radius: 8px;
+                  padding: 12px 16px;
+                  margin: 6px 0 16px 0;
+                  font-family: 'Consolas', 'Menlo', 'Monaco', monospace;
+                  font-size: 0.86rem;
+                  line-height: 1.45;
+                  color: var(--t-text);
+                  white-space: pre-wrap;
+                  word-break: break-word;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+                  position: relative;
               }
-              .demo-prompt [data-testid="stCodeBlock"] code {
-                  color: var(--t-text) !important;
-                  font-size: 0.86rem !important;
-                  white-space: pre-wrap !important;
-                  word-break: break-word !important;
+              .demo-prompt-box::before {
+                  content: "\\201C";  /* opening quote */
+                  position: absolute;
+                  left: 8px; top: -2px;
+                  font-size: 1.6rem; line-height: 1;
+                  color: var(--t-accent);
+                  font-family: Georgia, serif;
+                  opacity: 0.5;
+              }
+              .demo-prompt-box-content {
+                  padding-left: 18px;
               }
             </style>
             """,
             unsafe_allow_html=True,
         )
 
+        import html as _html
+
         def prompt_block(title, caption_text, prompt_text):
             st.markdown(f"**{title}**")
             st.caption(caption_text)
-            st.markdown('<div class="demo-prompt">', unsafe_allow_html=True)
-            st.code(prompt_text, language=None)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="demo-prompt-box">'
+                f'<div class="demo-prompt-box-content">{_html.escape(prompt_text)}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
         prompt_block(
             "1. Basic prediction",
@@ -1383,6 +1403,11 @@ with tabs[5]:
             "Iterative tuning toward a target outcome.",
             "What FICO score would this same borrower need to drop "
             "below 20% default probability?",
+        )
+
+        st.caption(
+            "Tip: triple-click any prompt to select all of it, then Ctrl+C "
+            "to copy."
         )
 
 
