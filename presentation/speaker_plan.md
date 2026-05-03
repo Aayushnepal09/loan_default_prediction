@@ -16,41 +16,42 @@ Total speaking time is 15:00. Run a stopwatch in dry runs and aim to come in
 
 | #   | Tab                      | Owner   | Time   | Cumulative |
 | --- | ------------------------ | ------- | ------ | ---------- |
-| 1   | Welcome                  | Aayush  | 1:00   | 1:00       |
-| 2   | Phase 1: Data            | Aayush  | 1:30   | 2:30       |
-| 3   | Phase 2: Pipeline        | Junwei  | 1:30   | 4:00       |
-| 4   | Phase 2: Models          | Junwei  | 2:30   | 6:30       |
-| 5   | Phase 3: Spark + Macro   | Lusi    | 2:00   | 8:30       |
-| 6   | Phase 3: MCP             | Lusi    | 1:30   | 10:00      |
+| 1   | Welcome                  | Lusi    | 1:00   | 1:00       |
+| 2   | Phase 1: Data            | Junwei  | 1:30   | 2:30       |
+| 3   | Phase 2: Pipeline        | Lusi    | 1:30   | 4:00       |
+| 4   | Phase 2: Models          | Lusi    | 2:30   | 6:30       |
+| 5   | Phase 3: Spark + Macro   | Aayush  | 2:00   | 8:30       |
+| 6   | Phase 3: MCP             | Aayush  | 1:30   | 10:00      |
 | 7   | Predict a loan (demo)    | Aayush  | 2:30   | 12:30      |
-| 8   | Insights + Next          | All 3   | 1:30   | 14:00      |
+| 8   | Insights + Next          | Junwei  | 1:30   | 14:00      |
 | 9   | Q&A                      | All 3   | 1:00   | 15:00      |
 
-Each speaker has roughly **5 minutes of solo airtime** plus shared minutes on
-demo + insights + Q&A. Teammates not currently presenting should stand at the
-laptop side, not block the screen.
+Solo airtime totals: **Aayush 6:00**, **Lusi 5:00**, **Junwei 3:00** + shared
+Q&A. Teammates not currently presenting should stand at the laptop side, not
+block the screen.
 
 ---
 
-## Tab 1 — Welcome (1:00, Aayush)
+## Tab 1 — Welcome (1:00, Lusi)
 
 **Goal:** anchor the audience on the question and the team in 60 seconds.
 
-1. "Lending Club is a peer-to-peer lender. Our use case is simple — given a
-   loan application, what is the probability the borrower will charge off?"
-2. "Same use case, four implementations: pandas → scikit-learn → Spark + MCP →
-   this Streamlit app." Point at the four-stat strip: 314k test loans,
+1. "We're 404 Team Not Found. Lending Club is a peer-to-peer lender. Our use
+   case is simple — given a loan application, what is the probability the
+   borrower will charge off?"
+2. "Same use case, four implementations: pandas → scikit-learn → Spark + MCP
+   → this Streamlit app." Point at the four-stat strip: 314k test loans,
    21% default rate, 0.726 test AUC-ROC, 110 features.
 3. "Phases 1 and 2 received perfect scores. We retained the time-based split,
    leakage discipline, and the 8-stage pipeline, and built on top."
 
-**Transition:** "Junwei is going to walk through the Phase 2 modeling work in a
-moment — but first I'll cover how the data was prepared, because the choices
-there are what made everything else possible."
+**Transition:** "Junwei is going to start us off with how the data was
+prepared — because the choices there are what made everything else
+possible."
 
 ---
 
-## Tab 2 — Phase 1: Data (1:30, Aayush)
+## Tab 2 — Phase 1: Data (1:30, Junwei)
 
 **Goal:** sell the leakage discipline. It is our most defensible decision.
 
@@ -65,11 +66,11 @@ there are what made everything else possible."
    public Lending Club notebooks accidentally train on these and report
    inflated metrics. Ours don't."
 
-**Transition:** "Junwei, take it from here."
+**Transition:** "Lusi takes us into the modeling work — pipeline first."
 
 ---
 
-## Tab 3 — Phase 2: Pipeline (1:30, Junwei)
+## Tab 3 — Phase 2: Pipeline (1:30, Lusi)
 
 **Goal:** show the 8-stage preprocessing pipeline as one coherent story.
 
@@ -88,7 +89,7 @@ there are what made everything else possible."
 
 ---
 
-## Tab 4 — Phase 2: Models (2:30, Junwei)
+## Tab 4 — Phase 2: Models (2:30, Lusi)
 
 **Goal:** the technical climax. Bake-off, holdout, threshold tuner.
 
@@ -105,12 +106,12 @@ there are what made everything else possible."
    show the curve. "A lender can pick the operating point matched to their
    cost ratio. This is what makes the model deployable, not just trained."
 
-**Transition:** "Lusi will take Phase 3 — Spark, Delta Lake, and the FRED
+**Transition:** "Aayush will take Phase 3 — Spark, Delta Lake, and the FRED
 macro layer."
 
 ---
 
-## Tab 5 — Phase 3: Spark + Macro (2:00, Lusi)
+## Tab 5 — Phase 3: Spark + Macro (2:00, Aayush)
 
 **Goal:** show that we scaled and added the rubric-rewarded secondary data.
 
@@ -133,7 +134,7 @@ macro layer."
 
 ---
 
-## Tab 6 — Phase 3: MCP (1:30, Lusi)
+## Tab 6 — Phase 3: MCP (1:30, Aayush)
 
 **Goal:** introduce the differentiator. Most teams won't have an MCP server.
 
@@ -150,11 +151,11 @@ macro layer."
    sub-grade B2, $58k income, FICO 720, renting, debt consolidation. Returns
    default probability, risk tier, and approve/decline."
 
-**Transition:** "Aayush is going to drive the live demo."
+**Transition:** "Now the live demo."
 
 ---
 
-## Tab 7 — Predict a loan (2:30, Aayush drives, team narrates)
+## Tab 7 — Predict a loan (2:30, Aayush)
 
 **Goal:** the wow factor. This is what the audience remembers. **Rehearse 5x.**
 
@@ -166,11 +167,10 @@ macro layer."
    toward default. Each bar is an XGBoost SHAP contribution."
 2. **What-if mode.** Without re-clicking, drop FICO from 700 → 600. The
    gauge re-renders live. "Adjust any input and the prediction is real-time.
-   No rebuild step." (Junwei jumps in here.)
+   No rebuild step."
 3. **Compare mode.** Toggle "Compare two loans." Set Loan A preset = Safe,
    Loan B preset = Risky. Click `Predict both loans`. "Two gauges side by
    side — Safe at ~10%, Risky at ~60%. Both with their own why-panels."
-   (Lusi jumps in.)
 4. **MCP live on Claude Desktop (the closer).** Switch to Claude Desktop
    (have it pre-opened in another window). Two prompts back to back:
 
@@ -193,7 +193,7 @@ macro layer."
    not the raw tool-call JSON. The JSON proves it works; the prose is what
    the audience remembers.
 
-**Transition:** "And bringing it home — what we found and what's next."
+**Transition:** "Junwei brings it home — what we found and what's next."
 
 **Backup plan if anything fails:**
 - Streamlit crashed → fall back to `presentation/presentation_slides.pdf`
@@ -212,21 +212,21 @@ These are listed in Tab 6 of the app as well, in case you blank.
 
 ---
 
-## Tab 8 — Insights + Next (1:30, All 3, ~30s each)
+## Tab 8 — Insights + Next (1:30, Junwei)
 
-Each speaker takes one card.
+**Goal:** close the technical story. Three beats, ~30s each.
 
-1. **Aayush (sub-grade chart):** "Default rate ramps cleanly from 6% at A1
-   to 45% at G5. The model mostly refines what Lending Club's own grade
-   already knows."
-2. **Junwei (limitations):** "Honest about what we did NOT solve — class
-   imbalance left as-is, no validation past 2017, no fairness audit, FICO is
-   our only credit signal."
-3. **Lusi (what's next):** "Real-time scoring API, fairness + adverse-action
-   layer, quarterly retraining cadence, more macro signals beyond
-   unemployment."
+1. **Sub-grade chart** (point at the bar chart): "Default rate ramps
+   cleanly from 6% at A1 to 45% at G5. The model mostly refines what
+   Lending Club's own grade already knows."
+2. **Limitations** (point at the red-bordered cards): "Honest about what we
+   did NOT solve — class imbalance left as-is, no validation past 2017, no
+   fairness audit, FICO is our only credit signal."
+3. **What's next** (point at the green-bordered cards): "Real-time scoring
+   API, fairness + adverse-action layer, quarterly retraining cadence, more
+   macro signals beyond unemployment."
 
-**Transition:** "Thank you, we'll take questions now."
+**Transition:** "Thank you — we'll take questions now."
 
 ---
 
@@ -235,11 +235,12 @@ Each speaker takes one card.
 Open the Q&A tab so the closing graphic is on screen. The "Likely questions,
 brief answers" section is the cheat sheet — pre-discussed, not improvised.
 
-**Anticipated questions and pre-cooked answers:**
+**Anticipated questions and pre-cooked answers** — speaker matches topic
+ownership so whoever knows that part of the work answers.
 
-- **"Why XGBoost over HistGradientBoosting?"** (Junwei) — "AUC tied at the
+- **"Why XGBoost over HistGradientBoosting?"** (Lusi) — "AUC tied at the
   4th decimal, XGBoost was 5× faster to fit, exposes native SHAP."
-- **"Why didn't extra macro features improve the model?"** (Lusi) — "The
+- **"Why didn't extra macro features improve the model?"** (Aayush) — "The
   production pipeline already has UNRATE via MacroJoiner. The extra FRED
   features are correlated with each other, so they add little marginal
   signal in a linear model."
@@ -248,7 +249,7 @@ brief answers" section is the cheat sheet — pre-discussed, not improvised.
 - **"Why no class imbalance correction?"** (Junwei) — "Tree models handle
   imbalance natively via `scale_pos_weight`. Resampling discards data and
   bakes a specific cost ratio into the model."
-- **"How does the threshold get chosen?"** (Aayush) — "Youden's J on val,
+- **"How does the threshold get chosen?"** (Lusi) — "Youden's J on val,
   but the threshold tuner shows the operating point can be moved live to
   match a lender's cost ratio."
 
